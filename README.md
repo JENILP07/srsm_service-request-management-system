@@ -40,7 +40,7 @@ Traditional service request systems are often clunky, difficult to navigate, and
 ![Dashboard](./public/adminDashboard.png)
 
 ### Request Management
-![Requests](https://via.placeholder.com/800x400/764ba2/ffffff?text=Request+Flow)
+![Requests](./public/adminDashboard2.png)
 
 </div>
 
