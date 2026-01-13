@@ -1,1 +1,0 @@
-{"version":3,"sources":["../../../../src/app/%28protected%29/requests/page.tsx"],"sourcesContent":["\"use client\";\n\nimport RequestsList from '@/views/RequestsList';\n\nexport default function RequestsPage() {\n    return <RequestsList />;\n}\n"],"names":[],"mappings":"wDAEA,EAAA,EAAA,CAAA,CAAA,OAEe,SAAS,IACpB,MAAO,CAAA,EAAA,EAAA,GAAA,EAAC,EAAA,OAAY,CAAA,CAAA,EACxB"}
