@@ -1,0 +1,6 @@
+{
+  "version": 3,
+  "sources": [],
+  "sections": [
+    {"offset": {"line": 10, "column": 0}, "map": {"version":3,"sources":["file:///home/swaggy/Study/SEM-6/AWT/task-path-pal-main%20%282%29/src/app/%28auth%29/auth/page.tsx"],"sourcesContent":["\"use client\";\n\nimport AuthPage from '@/views/AuthPage';\n\nexport default function AuthRoute() {\n    return <AuthPage />;\n}\n"],"names":[],"mappings":";;;;;AAEA;AAFA;;;AAIe,SAAS;IACpB,qBAAO,8OAAC,oIAAQ;;;;;AACpB"}}]
+}

@@ -1,0 +1,14 @@
+{
+  "/(auth)/auth/page": "app/(auth)/auth/page.js",
+  "/(protected)/admin/masters/page": "app/(protected)/admin/masters/page.js",
+  "/(protected)/admin/requests/page": "app/(protected)/admin/requests/page.js",
+  "/(protected)/hod/approvals/page": "app/(protected)/hod/approvals/page.js",
+  "/(protected)/hod/requests/page": "app/(protected)/hod/requests/page.js",
+  "/(protected)/page": "app/(protected)/page.js",
+  "/(protected)/requests/[id]/page": "app/(protected)/requests/[id]/page.js",
+  "/(protected)/requests/new/page": "app/(protected)/requests/new/page.js",
+  "/(protected)/requests/page": "app/(protected)/requests/page.js",
+  "/(protected)/technician/requests/page": "app/(protected)/technician/requests/page.js",
+  "/_global-error/page": "app/_global-error/page.js",
+  "/_not-found/page": "app/_not-found/page.js"
+}

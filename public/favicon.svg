@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- Background: Deep Blue/Indigo for Professionalism -->
+  <rect width="512" height="512" rx="100" fill="#4F46E5"/>
+  
+  <!-- Icon: Clipboard with Checkmark + Gear (Service + Management) -->
+  <g transform="translate(106, 106) scale(0.6)">
+    <!-- Clipboard Body -->
+    <path fill="white" d="M384 0H128C92.65 0 64 28.65 64 64v384c0 35.35 28.65 64 64 64h256c35.35 0 64-28.65 64-64V64c0-35.35-28.65-64-64-64z"/>
+    <!-- Clip -->
+    <path fill="#E0E7FF" d="M192 0h128v64H192z"/>
+    <!-- Checkmark (Green/Success) -->
+    <path fill="#10B981" d="M362.3 210.3c-9.4-9.4-24.6-9.4-33.9 0L224 314.1l-48.4-48.4c-9.4-9.4-24.6-9.4-33.9 0s-9.4 24.6 0 33.9l65.4 65.4c9.4 9.4 24.6 9.4 33.9 0l121.3-121.3c9.4-9.4 9.4-24.6 0-33.9z"/>
+  </g>
+</svg>
