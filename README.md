@@ -32,19 +32,18 @@ Traditional service request systems are often clunky, difficult to navigate, and
 
 ---
 
-<!-- ## 🎬 Demo & Screenshots
+ ## 🎬 Demo & Screenshots
 
 <div align="center">
 
 ### Dashboard Overview
-![Dashboard](https://via.placeholder.com/800x400/667eea/ffffff?text=Dashboard+Preview)
+![Dashboard](./public/adminDashboard.png)
 
 ### Request Management
 ![Requests](https://via.placeholder.com/800x400/764ba2/ffffff?text=Request+Flow)
 
 </div>
 
---- -->
 
 ## 🏗️ System Architecture
 
