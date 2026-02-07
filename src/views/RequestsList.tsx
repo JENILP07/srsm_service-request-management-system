@@ -23,7 +23,8 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Card, CardContent } from '@/components/ui/card';
-import { supabase } from '@/integrations/supabase/client';
+import { getRequests } from '@/app/actions/requests';
+import { getStatuses } from '@/app/actions/master-data';
 import { useAuth } from '@/contexts/AuthContext';
 import { Plus, Search, Filter, ArrowUpDown, Eye, ClipboardList, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
@@ -72,46 +73,19 @@ export default function RequestsList() {
     setIsLoading(true);
 
     // Fetch statuses
-    const { data: statusData } = await supabase
-      .from('service_request_statuses')
-      .select('id, name')
-      .order('sequence');
+    const { data: statusData } = await getStatuses();
 
     if (statusData) {
       setStatuses(statusData);
     }
 
-    // Fetch requests based on role
-    let query = supabase
-      .from('service_requests')
-      .select(`
-        id,
-        request_no,
-        request_datetime,
-        title,
-        description,
-        priority_level,
-        status:service_request_statuses(id, name),
-        service_request_type:service_request_types(
-          id,
-          name,
-          department:service_departments(id, name)
-        )
-      `)
-      .order('request_datetime', { ascending: false });
-
-    // Filter by role
-    if (role === 'requestor' && user?.id) {
-      query = query.eq('requester_id', user.id);
-    } else if (role === 'technician' && user?.id) {
-      query = query.eq('assigned_to_user_id', user.id);
-    }
-
-    const { data, error } = await query;
+    // Fetch requests using Server Action
+    const { data, error } = await getRequests();
 
     if (error) {
-      console.error('Error fetching requests:', JSON.stringify(error, null, 2));
+      console.error('Error fetching requests:', error);
     } else {
+      // @ts-ignore - Prisma types vs Client types
       setRequests(data || []);
     }
 

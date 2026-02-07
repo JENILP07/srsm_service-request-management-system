@@ -31,7 +31,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { supabase } from '@/integrations/supabase/client';
+import { getTypePersonMaps, createTypePersonMap, updateTypePersonMap, deleteTypePersonMap, getRequestTypes, getProfiles } from '@/app/actions/admin';
 import { Plus, Search, Pencil, Trash2, UserCog, ArrowRight, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
@@ -53,8 +53,8 @@ interface TypeWisePerson {
   from_date: string | null;
   to_date: string | null;
   description: string | null;
-  request_type: ServiceRequestType;
-  profile: Profile;
+  service_request_type: ServiceRequestType | null;
+  user: Profile | null;
 }
 
 export default function TypePersonMapMaster() {
@@ -83,49 +83,31 @@ export default function TypePersonMapMaster() {
     setIsLoading(true);
 
     // Fetch request types
-    const { data: rtData } = await supabase
-      .from('service_request_types')
-      .select('id, name')
-      .order('name');
-    if (rtData) setRequestTypes(rtData);
+    const { data: rtData } = await getRequestTypes();
+    // @ts-ignore
+    if (rtData) setRequestTypes(rtData || []);
 
     // Fetch profiles (technicians)
-    const { data: profileData } = await supabase
-      .from('profiles')
-      .select('id, name')
-      .order('name');
-    if (profileData) setProfiles(profileData);
+    const { data: profileData } = await getProfiles();
+    // @ts-ignore
+    if (profileData) setProfiles(profileData || []);
 
     // Fetch mappings
-    const { data, error } = await supabase
-      .from('service_request_type_wise_persons')
-      .select(`
-        id,
-        service_request_type_id,
-        user_id,
-        from_date,
-        to_date,
-        description,
-        request_type:service_request_types(id, name)
-      `)
-      .order('created_at', { ascending: false });
+    const { data, error } = await getTypePersonMaps();
 
     if (error) {
       toast.error('Failed to load mappings');
-      console.error(JSON.stringify(error, null, 2));
+      console.error(error);
     } else {
-      const enrichedData = data.map((item: any) => ({
-        ...item,
-        profile: profileData?.find(p => p.id === item.user_id) || { id: item.user_id, name: 'Unknown' }
-      }));
-      setMappings(enrichedData as unknown as TypeWisePerson[]);
+      // @ts-ignore
+      setMappings(data || []);
     }
     setIsLoading(false);
   };
 
   const filteredMaps = mappings.filter(map =>
-    map.profile?.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    map.request_type?.name?.toLowerCase().includes(searchQuery.toLowerCase())
+    map.user?.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    map.service_request_type?.name?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   const resetForm = () => {
@@ -168,26 +150,19 @@ export default function TypePersonMapMaster() {
     };
 
     if (editingMap) {
-      const { error } = await supabase
-        .from('service_request_type_wise_persons')
-        .update(payload)
-        .eq('id', editingMap.id);
+      const { error } = await updateTypePersonMap(editingMap.id, payload);
 
       if (error) {
         toast.error('Failed to update mapping');
-        console.error(error);
       } else {
         toast.success('Mapping updated successfully');
         fetchData();
       }
     } else {
-      const { error } = await supabase
-        .from('service_request_type_wise_persons')
-        .insert([payload]);
+      const { error } = await createTypePersonMap(payload);
 
       if (error) {
         toast.error('Failed to create mapping');
-        console.error(error);
       } else {
         toast.success('Mapping created successfully');
         fetchData();
@@ -200,14 +175,12 @@ export default function TypePersonMapMaster() {
   };
 
   const handleDelete = async (id: string) => {
-    const { error } = await supabase
-      .from('service_request_type_wise_persons')
-      .delete()
-      .eq('id', id);
+    if (!confirm('Are you sure?')) return;
+    
+    const { error } = await deleteTypePersonMap(id);
 
     if (error) {
       toast.error('Failed to delete mapping');
-      console.error(error);
     } else {
       toast.success('Mapping deleted successfully');
       fetchData();
@@ -344,7 +317,7 @@ export default function TypePersonMapMaster() {
                   <TableRow key={map.id}>
                     <TableCell>
                       <Badge variant="secondary" className="font-medium">
-                        {map.request_type?.name || 'Unknown'}
+                        {map.service_request_type?.name || 'Unknown'}
                       </Badge>
                     </TableCell>
                     <TableCell className="px-0">
@@ -354,10 +327,10 @@ export default function TypePersonMapMaster() {
                       <div className="flex items-center gap-3">
                         <Avatar className="h-8 w-8">
                           <AvatarFallback className="text-xs bg-primary/10 text-primary">
-                            {map.profile?.name?.split(' ').map(n => n[0]).join('') || '?'}
+                            {map.user?.name?.split(' ').map(n => n[0]).join('') || '?'}
                           </AvatarFallback>
                         </Avatar>
-                        <span className="font-medium">{map.profile?.name || 'Unknown'}</span>
+                        <span className="font-medium">{map.user?.name || 'Unknown'}</span>
                       </div>
                     </TableCell>
                     <TableCell className="hidden md:table-cell text-muted-foreground">

@@ -1,0 +1,228 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum AppRole {
+  admin
+  hod
+  technician
+  requestor
+  @@map("app_role")
+}
+
+model Profile {
+  id            String   @id @db.Uuid
+  name          String
+  email         String
+  avatar_url    String?
+  department_id String?
+  created_at    DateTime @default(now()) @db.Timestamptz
+  updated_at    DateTime @default(now()) @updatedAt @db.Timestamptz
+
+  // Relations
+  service_requests_created    ServiceRequest[]      @relation("Requester")
+  service_requests_assigned   ServiceRequest[]      @relation("AssignedTo")
+  service_requests_status_by  ServiceRequest[]      @relation("StatusBy")
+  service_requests_approval_by ServiceRequest[]     @relation("ApprovalBy")
+  service_requests_on_behalf  ServiceRequest[]      @relation("OnBehalfOf")
+  assigned_by_user            ServiceRequest[]      @relation("AssignedBy")
+  
+  replies                     ServiceRequestReply[]
+  replies_status_by           ServiceRequestReply[] @relation("ReplyStatusBy")
+  
+  dept_persons                ServiceDeptPerson[]
+  request_type_persons        ServiceRequestTypePerson[]
+
+  @@map("profiles")
+}
+
+model UserRole {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id    String   @db.Uuid
+  role       AppRole  @default(requestor)
+  created_at DateTime @default(now()) @db.Timestamptz
+
+  @@unique([user_id, role])
+  @@map("user_roles")
+}
+
+model ServiceDepartment {
+  id                        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name                      String
+  description               String?
+  cc_email                  String?
+  is_request_title_disabled Boolean? @default(false)
+  created_at                DateTime @default(now()) @db.Timestamptz
+  updated_at                DateTime @default(now()) @updatedAt @db.Timestamptz
+
+  // Relations
+  service_request_types ServiceRequestType[]
+  dept_persons          ServiceDeptPerson[]
+
+  @@map("service_departments")
+}
+
+model ServiceRequestStatus {
+  id                            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name                          String
+  system_name                   String   @unique
+  sequence                      Int?     @default(0)
+  description                   String?
+  css_class                     String?
+  is_open                       Boolean? @default(true)
+  is_no_further_action_required Boolean? @default(false)
+  is_allowed_for_technician     Boolean? @default(false)
+  created_at                    DateTime @default(now()) @db.Timestamptz
+  updated_at                    DateTime @default(now()) @updatedAt @db.Timestamptz
+
+  // Relations
+  service_requests        ServiceRequest[]
+  service_request_replies ServiceRequestReply[]
+
+  @@map("service_request_statuses")
+}
+
+model ServiceType {
+  id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name           String
+  description    String?
+  sequence       Int?     @default(0)
+  is_for_staff   Boolean? @default(true)
+  is_for_student Boolean? @default(true)
+  created_at     DateTime @default(now()) @db.Timestamptz
+  updated_at     DateTime @default(now()) @updatedAt @db.Timestamptz
+
+  // Relations
+  service_request_types ServiceRequestType[]
+
+  @@map("service_types")
+}
+
+model ServiceRequestType {
+  id                             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  service_type_id                String?  @db.Uuid
+  department_id                  String?  @db.Uuid
+  name                           String
+  description                    String?
+  sequence                       Int?     @default(0)
+  default_priority_level         String?  @default("Medium")
+  reminder_days_after_assignment Int?     @default(3)
+  is_visible_resource            Boolean? @default(false)
+  is_mandatory_resource          Boolean? @default(false)
+  created_at                     DateTime @default(now()) @db.Timestamptz
+  updated_at                     DateTime @default(now()) @updatedAt @db.Timestamptz
+
+  // Relations
+  service_type          ServiceType?               @relation(fields: [service_type_id], references: [id])
+  department            ServiceDepartment?         @relation(fields: [department_id], references: [id])
+  service_requests      ServiceRequest[]
+  request_type_persons  ServiceRequestTypePerson[]
+
+  @@map("service_request_types")
+}
+
+model ServiceDeptPerson {
+  id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  department_id String    @db.Uuid
+  user_id       String    @db.Uuid
+  from_date     DateTime  @default(now()) @db.Timestamptz
+  to_date       DateTime? @db.Timestamptz
+  is_hod        Boolean?  @default(false)
+  description   String?
+  created_at    DateTime  @default(now()) @db.Timestamptz
+  updated_at    DateTime  @default(now()) @updatedAt @db.Timestamptz
+
+  // Relations
+  department ServiceDepartment @relation(fields: [department_id], references: [id])
+  user       Profile           @relation(fields: [user_id], references: [id])
+
+  @@map("service_dept_persons")
+}
+
+model ServiceRequestTypePerson {
+  id                      String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  service_request_type_id String    @db.Uuid
+  user_id                 String    @db.Uuid
+  from_date               DateTime? @db.Timestamptz
+  to_date                 DateTime? @db.Timestamptz
+  description             String?
+  created_at              DateTime  @default(now()) @db.Timestamptz
+  updated_at              DateTime  @default(now()) @updatedAt @db.Timestamptz
+
+  // Relations
+  service_request_type ServiceRequestType @relation(fields: [service_request_type_id], references: [id])
+  user                 Profile            @relation(fields: [user_id], references: [id])
+
+  @@map("service_request_type_wise_persons")
+}
+
+model ServiceRequest {
+  id                       String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  request_no               String    @unique
+  request_datetime         DateTime  @default(now()) @db.Timestamptz
+  requester_id             String    @db.Uuid
+  service_request_type_id  String    @db.Uuid
+  title                    String
+  description              String
+  priority_level           String    @default("Medium")
+  status_id                String    @db.Uuid
+  status_datetime          DateTime? @db.Timestamptz
+  status_by_user_id        String?   @db.Uuid
+  status_description       String?
+  approval_status          String?   @default("Pending")
+  approval_datetime        DateTime? @db.Timestamptz
+  approval_by_user_id      String?   @db.Uuid
+  approval_description     String?
+  assigned_to_user_id      String?   @db.Uuid
+  assigned_datetime        DateTime? @db.Timestamptz
+  assigned_by_user_id      String?   @db.Uuid
+  assigned_description     String?
+  on_behalf_of_user_id     String?   @db.Uuid
+  created_at               DateTime  @default(now()) @db.Timestamptz
+  updated_at               DateTime  @default(now()) @updatedAt @db.Timestamptz
+
+  // Relations
+  requester            Profile              @relation("Requester", fields: [requester_id], references: [id])
+  service_request_type ServiceRequestType   @relation(fields: [service_request_type_id], references: [id])
+  status               ServiceRequestStatus @relation(fields: [status_id], references: [id])
+  
+  status_by_user       Profile?             @relation("StatusBy", fields: [status_by_user_id], references: [id])
+  approval_by_user     Profile?             @relation("ApprovalBy", fields: [approval_by_user_id], references: [id])
+  assigned_to_user     Profile?             @relation("AssignedTo", fields: [assigned_to_user_id], references: [id])
+  assigned_by_user_rel Profile?             @relation("AssignedBy", fields: [assigned_by_user_id], references: [id])
+  on_behalf_of_user    Profile?             @relation("OnBehalfOf", fields: [on_behalf_of_user_id], references: [id])
+  
+  replies              ServiceRequestReply[]
+
+  @@map("service_requests")
+}
+
+model ServiceRequestReply {
+  id                 String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  service_request_id String    @db.Uuid
+  user_id            String    @db.Uuid
+  reply_datetime     DateTime  @default(now()) @db.Timestamptz
+  reply_description  String
+  attachment_path    String?
+  status_id          String?   @db.Uuid
+  status_datetime    DateTime? @db.Timestamptz
+  status_by_user_id  String?   @db.Uuid
+  status_description String?
+  created_at         DateTime  @default(now()) @db.Timestamptz
+  updated_at         DateTime  @default(now()) @updatedAt @db.Timestamptz
+
+  // Relations
+  service_request ServiceRequest        @relation(fields: [service_request_id], references: [id], onDelete: Cascade)
+  user            Profile               @relation(fields: [user_id], references: [id])
+  status          ServiceRequestStatus? @relation(fields: [status_id], references: [id])
+  status_by_user  Profile?              @relation("ReplyStatusBy", fields: [status_by_user_id], references: [id])
+
+  @@map("service_request_replies")
+}

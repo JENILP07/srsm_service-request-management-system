@@ -23,7 +23,7 @@ import {
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
-import { supabase } from '@/integrations/supabase/client';
+import { getDepartments, createDepartment, updateDepartment, deleteDepartment } from '@/app/actions/admin';
 import { Plus, Search, Pencil, Trash2, Building2, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
@@ -33,7 +33,7 @@ interface ServiceDepartment {
   name: string;
   description: string | null;
   cc_email: string | null;
-  is_request_title_disabled: boolean;
+  is_request_title_disabled: boolean | null;
   created_at: string;
 }
 
@@ -58,15 +58,13 @@ export default function DepartmentsMaster() {
 
   const fetchDepartments = async () => {
     setIsLoading(true);
-    const { data, error } = await supabase
-      .from('service_departments')
-      .select('*')
-      .order('name');
+    const { data, error } = await getDepartments();
 
     if (error) {
       toast.error('Failed to load departments');
       console.error(error);
     } else {
+      // @ts-ignore
       setDepartments(data || []);
     }
     setIsLoading(false);
@@ -93,7 +91,7 @@ export default function DepartmentsMaster() {
       name: dept.name,
       description: dept.description || '',
       cc_email: dept.cc_email || '',
-      is_request_title_disabled: dept.is_request_title_disabled,
+      is_request_title_disabled: dept.is_request_title_disabled || false,
     });
     setIsDialogOpen(true);
   };
@@ -114,26 +112,19 @@ export default function DepartmentsMaster() {
     };
 
     if (editingDept) {
-      const { error } = await supabase
-        .from('service_departments')
-        .update(payload)
-        .eq('id', editingDept.id);
+      const { error } = await updateDepartment(editingDept.id, payload);
 
       if (error) {
         toast.error('Failed to update department');
-        console.error(error);
       } else {
         toast.success('Department updated successfully');
         fetchDepartments();
       }
     } else {
-      const { error } = await supabase
-        .from('service_departments')
-        .insert([payload]);
+      const { error } = await createDepartment(payload);
 
       if (error) {
         toast.error('Failed to create department');
-        console.error(error);
       } else {
         toast.success('Department created successfully');
         fetchDepartments();
@@ -146,14 +137,12 @@ export default function DepartmentsMaster() {
   };
 
   const handleDelete = async (id: string) => {
-    const { error } = await supabase
-      .from('service_departments')
-      .delete()
-      .eq('id', id);
+    if (!confirm('Are you sure you want to delete this department?')) return;
+    
+    const { error } = await deleteDepartment(id);
 
     if (error) {
       toast.error('Failed to delete department');
-      console.error(error);
     } else {
       toast.success('Department deleted successfully');
       fetchDepartments();

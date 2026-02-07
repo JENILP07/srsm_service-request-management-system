@@ -1,0 +1,231 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Profile {
+  id                        String                     @id
+  email                     String                     @unique
+  name                      String
+  avatar_url                String?
+  department_id             String?
+  created_at                DateTime                   @default(now())
+  updated_at                DateTime                   @updatedAt
+  accounts                  accounts[]
+  dept_persons              ServiceDeptPerson[]
+  replies                   ServiceRequestReply[]
+  request_type_persons      ServiceRequestTypePerson[]
+  service_requests_assigned ServiceRequest[]           @relation("AssignedTo")
+  service_requests_created  ServiceRequest[]           @relation("Requester")
+  sessions                  sessions[]
+  user_roles                UserRole[]
+
+  @@map("profiles")
+}
+
+model UserRole {
+  id         String   @id
+  user_id    String
+  role       AppRole
+  created_at DateTime @default(now())
+  profiles   Profile  @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@map("user_roles")
+}
+
+model ServiceDepartment {
+  id                        String               @id
+  name                      String
+  description               String?
+  cc_email                  String?
+  is_request_title_disabled Boolean?             @default(false)
+  created_at                DateTime             @default(now())
+  updated_at                DateTime             @updatedAt
+  dept_persons              ServiceDeptPerson[]
+  service_request_types     ServiceRequestType[]
+
+  @@map("service_departments")
+}
+
+model ServiceRequestStatus {
+  id                            String                @id
+  name                          String
+  system_name                   String
+  description                   String?
+  sequence                      Int?
+  is_open                       Boolean?              @default(true)
+  is_allowed_for_technician     Boolean?              @default(false)
+  is_no_further_action_required Boolean?              @default(false)
+  css_class                     String?
+  created_at                    DateTime              @default(now())
+  updated_at                    DateTime              @updatedAt
+  service_request_replies       ServiceRequestReply[]
+  service_requests              ServiceRequest[]
+
+  @@map("service_request_statuses")
+}
+
+model ServiceType {
+  id                    String               @id
+  name                  String
+  description           String?
+  is_for_staff          Boolean?             @default(false)
+  is_for_student        Boolean?             @default(false)
+  sequence              Int?
+  created_at            DateTime             @default(now())
+  updated_at            DateTime             @updatedAt
+  service_request_types ServiceRequestType[]
+
+  @@map("service_types")
+}
+
+model ServiceRequestType {
+  id                             String                     @id
+  name                           String
+  description                    String?
+  department_id                  String?
+  service_type_id                String?
+  sequence                       Int?
+  is_visible_resource            Boolean?                   @default(true)
+  is_mandatory_resource          Boolean?                   @default(false)
+  default_priority_level         String?
+  reminder_days_after_assignment Int?
+  created_at                     DateTime                   @default(now())
+  updated_at                     DateTime                   @updatedAt
+  request_type_persons           ServiceRequestTypePerson[]
+  department                     ServiceDepartment?         @relation(fields: [department_id], references: [id])
+  service_type                   ServiceType?               @relation(fields: [service_type_id], references: [id])
+  service_requests               ServiceRequest[]
+
+  @@map("service_request_types")
+}
+
+model ServiceDeptPerson {
+  id            String            @id
+  department_id String
+  user_id       String
+  is_hod        Boolean?          @default(false)
+  from_date     DateTime
+  to_date       DateTime?
+  description   String?
+  created_at    DateTime          @default(now())
+  updated_at    DateTime          @updatedAt
+  department    ServiceDepartment @relation(fields: [department_id], references: [id], onDelete: Cascade)
+  user          Profile           @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@map("service_dept_persons")
+}
+
+model ServiceRequestTypePerson {
+  id                      String             @id
+  service_request_type_id String
+  user_id                 String
+  from_date               DateTime?
+  to_date                 DateTime?
+  description             String?
+  created_at              DateTime           @default(now())
+  updated_at              DateTime           @updatedAt
+  service_request_type    ServiceRequestType @relation(fields: [service_request_type_id], references: [id], onDelete: Cascade)
+  user                    Profile            @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@map("service_request_type_wise_persons")
+}
+
+model ServiceRequest {
+  id                      String                @id
+  request_no              String
+  request_datetime        DateTime              @default(now())
+  title                   String
+  description             String
+  service_request_type_id String
+  status_id               String
+  requester_id            String
+  on_behalf_of_user_id    String?
+  priority_level          String
+  assigned_to_user_id     String?
+  assigned_by_user_id     String?
+  assigned_datetime       DateTime?
+  assigned_description    String?
+  approval_status         String?
+  approval_by_user_id     String?
+  approval_datetime       DateTime?
+  approval_description    String?
+  status_description      String?
+  status_datetime         DateTime?
+  status_by_user_id       String?
+  created_at              DateTime              @default(now())
+  updated_at              DateTime              @updatedAt
+  replies                 ServiceRequestReply[]
+  assigned_to_user        Profile?              @relation("AssignedTo", fields: [assigned_to_user_id], references: [id])
+  requester               Profile               @relation("Requester", fields: [requester_id], references: [id])
+  service_request_type    ServiceRequestType    @relation(fields: [service_request_type_id], references: [id])
+  status                  ServiceRequestStatus  @relation(fields: [status_id], references: [id])
+
+  @@map("service_requests")
+}
+
+model ServiceRequestReply {
+  id                 String                @id
+  service_request_id String
+  user_id            String
+  reply_description  String
+  reply_datetime     DateTime              @default(now())
+  attachment_path    String?
+  status_id          String?
+  status_description String?
+  status_datetime    DateTime?
+  status_by_user_id  String?
+  created_at         DateTime              @default(now())
+  updated_at         DateTime              @updatedAt
+  service_request    ServiceRequest        @relation(fields: [service_request_id], references: [id], onDelete: Cascade)
+  status             ServiceRequestStatus? @relation(fields: [status_id], references: [id])
+  user               Profile               @relation(fields: [user_id], references: [id])
+
+  @@map("service_request_replies")
+}
+
+model accounts {
+  id                  String  @id
+  user_id             String
+  type                String
+  provider            String
+  provider_account_id String
+  refresh_token       String?
+  access_token        String?
+  expires_at          Int?
+  token_type          String?
+  scope               String?
+  id_token            String?
+  session_state       String?
+  profiles            Profile @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@unique([provider, provider_account_id])
+}
+
+model sessions {
+  id            String   @id
+  session_token String   @unique
+  user_id       String
+  expires       DateTime
+  profiles      Profile  @relation(fields: [user_id], references: [id], onDelete: Cascade)
+}
+
+model verification_tokens {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+enum AppRole {
+  admin
+  hod
+  technician
+  requestor
+
+  @@map("app_role")
+}

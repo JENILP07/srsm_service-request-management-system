@@ -23,7 +23,7 @@ import {
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
-import { supabase } from '@/integrations/supabase/client';
+import { getServiceTypes, createServiceType, updateServiceType, deleteServiceType } from '@/app/actions/admin';
 import { Plus, Search, Pencil, Trash2, FileText, CheckCircle2, XCircle, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -58,15 +58,13 @@ export default function ServiceTypesMaster() {
 
   const fetchTypes = async () => {
     setIsLoading(true);
-    const { data, error } = await supabase
-      .from('service_types')
-      .select('*')
-      .order('sequence');
+    const { data, error } = await getServiceTypes();
 
     if (error) {
       toast.error('Failed to load service types');
       console.error(error);
     } else {
+      // @ts-ignore
       setTypes(data || []);
     }
     setIsLoading(false);
@@ -92,9 +90,9 @@ export default function ServiceTypesMaster() {
     setFormData({
       name: type.name,
       description: type.description || '',
-      sequence: type.sequence,
-      is_for_staff: type.is_for_staff,
-      is_for_student: type.is_for_student,
+      sequence: type.sequence || 0,
+      is_for_staff: type.is_for_staff || false,
+      is_for_student: type.is_for_student || false,
     });
     setIsDialogOpen(true);
   };
@@ -116,26 +114,19 @@ export default function ServiceTypesMaster() {
     };
 
     if (editingType) {
-      const { error } = await supabase
-        .from('service_types')
-        .update(payload)
-        .eq('id', editingType.id);
+      const { error } = await updateServiceType(editingType.id, payload);
 
       if (error) {
         toast.error('Failed to update service type');
-        console.error(error);
       } else {
         toast.success('Service type updated successfully');
         fetchTypes();
       }
     } else {
-      const { error } = await supabase
-        .from('service_types')
-        .insert([payload]);
+      const { error } = await createServiceType(payload);
 
       if (error) {
         toast.error('Failed to create service type');
-        console.error(error);
       } else {
         toast.success('Service type created successfully');
         fetchTypes();
@@ -148,14 +139,12 @@ export default function ServiceTypesMaster() {
   };
 
   const handleDelete = async (id: string) => {
-    const { error } = await supabase
-      .from('service_types')
-      .delete()
-      .eq('id', id);
+    if (!confirm('Are you sure?')) return;
+    
+    const { error } = await deleteServiceType(id);
 
     if (error) {
       toast.error('Failed to delete service type');
-      console.error(error);
     } else {
       toast.success('Service type deleted successfully');
       fetchTypes();

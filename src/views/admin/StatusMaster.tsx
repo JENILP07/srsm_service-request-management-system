@@ -24,7 +24,7 @@ import {
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
-import { supabase } from '@/integrations/supabase/client';
+import { getStatuses, createStatus, updateStatus, deleteStatus } from '@/app/actions/admin';
 import { Plus, Search, Pencil, Trash2, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -66,15 +66,13 @@ export default function StatusMaster() {
 
   const fetchStatuses = async () => {
     setIsLoading(true);
-    const { data, error } = await supabase
-      .from('service_request_statuses')
-      .select('*')
-      .order('sequence', { ascending: true });
+    const { data, error } = await getStatuses();
 
     if (error) {
       toast.error('Failed to load statuses');
       console.error(error);
     } else {
+      // @ts-ignore
       setStatuses(data || []);
     }
     setIsLoading(false);
@@ -104,12 +102,12 @@ export default function StatusMaster() {
     setFormData({
       name: status.name,
       system_name: status.system_name,
-      sequence: status.sequence,
+      sequence: status.sequence || 0,
       description: status.description || '',
       css_class: status.css_class || '',
-      is_open: status.is_open,
-      is_no_further_action_required: status.is_no_further_action_required,
-      is_allowed_for_technician: status.is_allowed_for_technician,
+      is_open: status.is_open || false,
+      is_no_further_action_required: status.is_no_further_action_required || false,
+      is_allowed_for_technician: status.is_allowed_for_technician || false,
     });
     setIsDialogOpen(true);
   };
@@ -122,27 +120,31 @@ export default function StatusMaster() {
 
     setIsSaving(true);
 
+    const payload = {
+        name: formData.name,
+        system_name: formData.system_name,
+        sequence: formData.sequence,
+        description: formData.description || null,
+        css_class: formData.css_class || null,
+        is_open: formData.is_open,
+        is_no_further_action_required: formData.is_no_further_action_required,
+        is_allowed_for_technician: formData.is_allowed_for_technician
+    }
+
     if (editingStatus) {
-      const { error } = await supabase
-        .from('service_request_statuses')
-        .update(formData)
-        .eq('id', editingStatus.id);
+      const { error } = await updateStatus(editingStatus.id, payload);
 
       if (error) {
         toast.error('Failed to update status');
-        console.error(error);
       } else {
         toast.success('Status updated successfully');
         fetchStatuses();
       }
     } else {
-      const { error } = await supabase
-        .from('service_request_statuses')
-        .insert([formData]);
+      const { error } = await createStatus(payload);
 
       if (error) {
         toast.error('Failed to create status');
-        console.error(error);
       } else {
         toast.success('Status created successfully');
         fetchStatuses();
@@ -155,14 +157,12 @@ export default function StatusMaster() {
   };
 
   const handleDelete = async (id: string) => {
-    const { error } = await supabase
-      .from('service_request_statuses')
-      .delete()
-      .eq('id', id);
+    if (!confirm('Are you sure?')) return;
+
+    const { error } = await deleteStatus(id);
 
     if (error) {
       toast.error('Failed to delete status');
-      console.error(error);
     } else {
       toast.success('Status deleted successfully');
       fetchStatuses();

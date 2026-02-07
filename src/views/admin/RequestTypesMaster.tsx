@@ -31,7 +31,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
-import { supabase } from '@/integrations/supabase/client';
+import { getRequestTypes, createRequestType, updateRequestType, deleteRequestType, getServiceTypes, getDepartments } from '@/app/actions/admin';
 import { PriorityBadge } from '@/components/ui/priority-badge';
 import { PriorityLevel } from '@/types/service-request';
 import { Plus, Search, Pencil, Trash2, ClipboardList, Loader2 } from 'lucide-react';
@@ -58,8 +58,8 @@ interface ServiceRequestType {
   reminder_days_after_assignment: number | null;
   is_visible_resource: boolean;
   is_mandatory_resource: boolean;
-  service_type: ServiceType;
-  department: ServiceDepartment;
+  service_type: ServiceType | null;
+  department: ServiceDepartment | null;
 }
 
 export default function RequestTypesMaster() {
@@ -92,34 +92,24 @@ export default function RequestTypesMaster() {
     setIsLoading(true);
     
     // Fetch service types
-    const { data: stData } = await supabase
-      .from('service_types')
-      .select('id, name')
-      .order('sequence');
-    if (stData) setServiceTypes(stData);
+    const { data: stData } = await getServiceTypes();
+    // @ts-ignore
+    if (stData) setServiceTypes(stData || []);
 
     // Fetch departments
-    const { data: deptData } = await supabase
-      .from('service_departments')
-      .select('id, name')
-      .order('name');
-    if (deptData) setDepartments(deptData);
+    const { data: deptData } = await getDepartments();
+    // @ts-ignore
+    if (deptData) setDepartments(deptData || []);
 
     // Fetch request types with joins
-    const { data, error } = await supabase
-      .from('service_request_types')
-      .select(`
-        *,
-        service_type:service_types(id, name),
-        department:service_departments(id, name)
-      `)
-      .order('sequence');
+    const { data, error } = await getRequestTypes();
 
     if (error) {
       toast.error('Failed to load request types');
       console.error(error);
     } else {
-      setRequestTypes(data as unknown as ServiceRequestType[]);
+      // @ts-ignore
+      setRequestTypes(data || []);
     }
     setIsLoading(false);
   };
@@ -150,13 +140,13 @@ export default function RequestTypesMaster() {
     setFormData({
       name: type.name,
       description: type.description || '',
-      sequence: type.sequence,
-      service_type_id: type.service_type_id,
-      department_id: type.department_id,
+      sequence: type.sequence || 0,
+      service_type_id: type.service_type_id || '',
+      department_id: type.department_id || '',
       default_priority_level: type.default_priority_level || 'Medium',
       reminder_days_after_assignment: type.reminder_days_after_assignment || 3,
-      is_visible_resource: type.is_visible_resource,
-      is_mandatory_resource: type.is_mandatory_resource,
+      is_visible_resource: type.is_visible_resource || false,
+      is_mandatory_resource: type.is_mandatory_resource || false,
     });
     setIsDialogOpen(true);
   };
@@ -182,26 +172,19 @@ export default function RequestTypesMaster() {
     };
 
     if (editingType) {
-      const { error } = await supabase
-        .from('service_request_types')
-        .update(payload)
-        .eq('id', editingType.id);
+      const { error } = await updateRequestType(editingType.id, payload);
 
       if (error) {
         toast.error('Failed to update request type');
-        console.error(error);
       } else {
         toast.success('Request type updated successfully');
         fetchData();
       }
     } else {
-      const { error } = await supabase
-        .from('service_request_types')
-        .insert([payload]);
+      const { error } = await createRequestType(payload);
 
       if (error) {
         toast.error('Failed to create request type');
-        console.error(error);
       } else {
         toast.success('Request type created successfully');
         fetchData();
@@ -214,14 +197,12 @@ export default function RequestTypesMaster() {
   };
 
   const handleDelete = async (id: string) => {
-    const { error } = await supabase
-      .from('service_request_types')
-      .delete()
-      .eq('id', id);
+    if (!confirm('Are you sure?')) return;
+    
+    const { error } = await deleteRequestType(id);
 
     if (error) {
       toast.error('Failed to delete request type');
-      console.error(error);
     } else {
       toast.success('Request type deleted successfully');
       fetchData();
@@ -298,7 +279,7 @@ export default function RequestTypesMaster() {
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="defaultPriority">Default Priority</Label>
-                <Select value={formData.default_priority_level} onValueChange={(v) => setFormData({ ...formData, default_priority_level: v })}>
+                <Select value={formData.default_priority_level || 'Medium'} onValueChange={(v) => setFormData({ ...formData, default_priority_level: v })}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
@@ -314,7 +295,7 @@ export default function RequestTypesMaster() {
                 <Input 
                   id="reminderDays" 
                   type="number" 
-                  value={formData.reminder_days_after_assignment}
+                  value={formData.reminder_days_after_assignment || 3}
                   onChange={(e) => setFormData({ ...formData, reminder_days_after_assignment: parseInt(e.target.value) || 3 })}
                 />
               </div>

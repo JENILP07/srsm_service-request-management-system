@@ -11,7 +11,7 @@ import { PriorityBadge } from '@/components/ui/priority-badge';
 import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { supabase } from '@/integrations/supabase/client';
+import { getRequestDetail, addReply, getDepartmentTechnicians, assignTechnician } from '@/app/actions/requests';
 import { useAuth } from '@/contexts/AuthContext';
 import { PriorityLevel } from '@/types/service-request';
 import {
@@ -54,7 +54,7 @@ interface ServiceRequest {
     name: string;
     email: string;
   };
-  assigned_to: {
+  assigned_to_user: {
     id: string;
     name: string;
   } | null;
@@ -64,7 +64,7 @@ interface ServiceRequest {
     department: {
       id: string;
       name: string;
-    };
+    } | null;
   };
 }
 
@@ -77,7 +77,7 @@ interface Reply {
   };
   status: {
     name: string;
-  };
+  } | null;
 }
 
 export default function RequestDetail() {
@@ -95,8 +95,7 @@ export default function RequestDetail() {
 
   useEffect(() => {
     if (id) {
-      fetchRequest();
-      fetchReplies();
+      loadRequestData();
     }
   }, [id]);
 
@@ -108,139 +107,39 @@ export default function RequestDetail() {
 
   const fetchTechnicians = async () => {
     if (!request?.service_request_type?.department?.id) return;
+    const { data } = await getDepartmentTechnicians(request.service_request_type.department.id);
+    if (data) setTechnicians(data);
+  };
 
-    // Fetch users who are in this department
-    const { data, error } = await supabase
-      .from('service_dept_persons')
-      .select('user_id')
-      .eq('department_id', request.service_request_type.department.id);
-
-    if (data) {
-      const userIds = data.map(d => d.user_id);
-      if (userIds.length > 0) {
-        // Fetch profile names
-        const { data: profiles } = await supabase
-          .from('profiles')
-          .select('id, name')
-          .in('id', userIds);
-
-        if (profiles) setTechnicians(profiles);
-      }
+  const loadRequestData = async () => {
+    const { data, error } = await getRequestDetail(id);
+    if (error || !data) {
+        toast.error('Failed to load request');
+    } else {
+        // @ts-ignore - Prisma return types vs Interface match up
+        setRequest(data);
+        // @ts-ignore
+        setReplies(data.replies);
     }
+    setIsLoading(false);
   };
 
   const handleAssign = async () => {
     if (!selectedTechnician || !request) return;
     setIsSubmitting(true);
 
-    const { error } = await supabase
-      .from('service_requests')
-      .update({
-        assigned_to_user_id: selectedTechnician,
-        assigned_datetime: new Date().toISOString(),
-        assigned_by_user_id: user?.id,
-        status_id: request.status.id // Keep status same or move to In Progress if needed
-      })
-      .eq('id', request.id);
+    const { error } = await assignTechnician(request.id, selectedTechnician);
 
     if (error) {
       toast.error('Failed to assign technician');
-      console.error(error);
     } else {
       toast.success('Technician assigned successfully');
-      fetchRequest(); // Refresh data
-
-      // Auto-post a system reply
-      const techName = technicians.find(t => t.id === selectedTechnician)?.name;
-      await supabase.from('service_request_replies').insert([{
-        service_request_id: request.id,
-        user_id: user?.id,
-        reply_description: `Assigned request to ${techName}`,
-        status_id: request.status.id
-      }]);
-      fetchReplies();
+      loadRequestData(); // Refresh data
     }
     setIsSubmitting(false);
   };
 
-  const fetchRequest = async () => {
-    const { data: requestData, error } = await supabase
-      .from('service_requests')
-      .select(`
-        id,
-        request_no,
-        request_datetime,
-        title,
-        description,
-        priority_level,
-        approval_status,
-        assigned_to_user_id,
-        requester_id,
-        status:service_request_statuses(id, name),
-        service_request_type:service_request_types(
-          id,
-          name,
-          department:service_departments(id, name)
-        )
-      `)
-      .eq('id', id)
-      .single();
-
-    if (error) {
-      console.error('Error fetching request:', JSON.stringify(error, null, 2));
-      toast.error('Failed to load request');
-    } else {
-      // Manually fetch related profiles since FKs are missing
-      let requester = null;
-      let assigned_to = null;
-
-      if (requestData.requester_id) {
-        const { data } = await supabase.from('profiles').select('id, name, email').eq('id', requestData.requester_id).single();
-        requester = data;
-      }
-
-      if (requestData.assigned_to_user_id) {
-        const { data } = await supabase.from('profiles').select('id, name').eq('id', requestData.assigned_to_user_id).single();
-        assigned_to = data;
-      }
-
-      setRequest({ ...requestData, requester, assigned_to } as unknown as ServiceRequest);
-    }
-    setIsLoading(false);
-  };
-
-  const fetchReplies = async () => {
-    const { data } = await supabase
-      .from('service_request_replies')
-      .select(`
-        id,
-        reply_datetime,
-        reply_description,
-        user_id,
-        status:service_request_statuses(name)
-      `)
-      .eq('service_request_id', id)
-      .order('reply_datetime', { ascending: true });
-
-    if (data) {
-      // Manually fetch user names for replies
-      const enrichedReplies = await Promise.all(data.map(async (reply) => {
-        let userName = 'Unknown';
-        if (reply.user_id) {
-          const { data: userData } = await supabase.from('profiles').select('name').eq('id', reply.user_id).single();
-          if (userData) userName = userData.name;
-        }
-        return {
-          ...reply,
-          user: { name: userName }
-        };
-      }));
-      setReplies(enrichedReplies as unknown as Reply[]);
-    }
-  };
-
   const handleReply = async () => {
-    // Validate with Zod before submitting
     const validationResult = replySchema.safeParse({
       reply_description: replyText.trim(),
     });
@@ -253,29 +152,14 @@ export default function RequestDetail() {
     if (!request || !user) return;
     setIsSubmitting(true);
 
-    const { error } = await supabase
-      .from('service_request_replies')
-      .insert([{
-        service_request_id: request.id,
-        user_id: user.id,
-        reply_description: validationResult.data.reply_description,
-        status_id: request.status.id,
-        status_datetime: new Date().toISOString(),
-        status_by_user_id: user.id,
-      }]);
+    const { error } = await addReply(request.id, validationResult.data.reply_description);
 
     if (error) {
-      // Handle constraint violations with user-friendly messages
-      if (error.message.includes('replies_description_length')) {
-        toast.error('Reply is too long (max 5000 characters)');
-      } else {
-        toast.error('Failed to post reply');
-      }
-      console.error(error);
+      toast.error('Failed to post reply');
     } else {
       toast.success('Reply posted successfully');
       setReplyText('');
-      fetchReplies();
+      loadRequestData(); // Refresh to get new reply
     }
     setIsSubmitting(false);
   };
@@ -425,12 +309,12 @@ export default function RequestDetail() {
                   <p className="font-medium">{request.requester?.name}</p>
                 </div>
               </div>
-              {request.assigned_to && (
+              {request.assigned_to_user && (
                 <div className="flex items-center gap-3 text-sm">
                   <CheckCircle2 className="h-4 w-4 text-muted-foreground" />
                   <div>
                     <p className="text-muted-foreground">Assigned To</p>
-                    <p className="font-medium">{request.assigned_to.name}</p>
+                    <p className="font-medium">{request.assigned_to_user.name}</p>
                   </div>
                 </div>
               )}

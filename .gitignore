@@ -75,3 +75,5 @@ coverage/
 
 # misc
 *.log
+
+/src/generated/prisma

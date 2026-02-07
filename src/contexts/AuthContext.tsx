@@ -1,22 +1,26 @@
 "use client";
 
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
-import { User, Session } from '@supabase/supabase-js';
-import { supabase } from '@/integrations/supabase/client';
+import { getAuthData, signIn as apiSignIn, signUp as apiSignUp, signOut as apiSignOut } from '@/app/actions/auth';
 
 export type AppRole = 'admin' | 'hod' | 'technician' | 'requestor';
+
+interface User {
+  id: string;
+  email: string;
+}
 
 interface Profile {
   id: string;
   name: string;
   email: string;
-  avatar_url?: string;
-  department_id?: string;
+  avatar_url?: string | null;
+  department_id?: string | null;
 }
 
 interface AuthContextType {
   user: User | null;
-  session: Session | null;
+  session: any | null; // Placeholder for session object if needed
   profile: Profile | null;
   role: AppRole;
   isLoading: boolean;
@@ -30,70 +34,25 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
-  const [session, setSession] = useState<Session | null>(null);
+  const [session, setSession] = useState<any | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [role, setRole] = useState<AppRole>('requestor');
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Set up auth state listener FIRST
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, currentSession) => {
-        setSession(currentSession);
-        setUser(currentSession?.user ?? null);
-
-        // Defer fetching profile/role to avoid deadlock
-        if (currentSession?.user) {
-          setTimeout(() => {
-            fetchUserData(currentSession.user.id);
-          }, 0);
-        } else {
-          setProfile(null);
-          setRole('requestor');
-          setIsLoading(false);
-        }
-      }
-    );
-
-    // THEN check for existing session
-    supabase.auth.getSession().then(({ data: { session: currentSession } }) => {
-      setSession(currentSession);
-      setUser(currentSession?.user ?? null);
-      if (currentSession?.user) {
-        fetchUserData(currentSession.user.id);
-      } else {
-        setIsLoading(false);
-      }
-    });
-
-    return () => subscription.unsubscribe();
+    checkAuth();
   }, []);
 
-  const fetchUserData = async (userId: string) => {
+  const checkAuth = async () => {
     try {
-      // Fetch profile
-      const { data: profileData } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', userId)
-        .maybeSingle();
-
-      if (profileData) {
-        setProfile(profileData as Profile);
-      }
-
-      // Fetch role
-      const { data: roleData } = await supabase
-        .from('user_roles')
-        .select('role')
-        .eq('user_id', userId)
-        .maybeSingle();
-
-      if (roleData) {
-        setRole(roleData.role as AppRole);
-      }
+      const data = await getAuthData();
+      setUser(data.user);
+      // @ts-ignore
+      setProfile(data.profile);
+      // @ts-ignore
+      setRole(data.role as AppRole);
     } catch (error) {
-      console.error('Error fetching user data:', error);
+      console.error('Auth check failed', error);
     } finally {
       setIsLoading(false);
     }
@@ -101,11 +60,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signIn = async (email: string, password: string) => {
     try {
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-      return { error };
+      const res = await apiSignIn(email, password);
+      if (res.error) throw new Error(res.error);
+      await checkAuth(); // Refresh state
+      return { error: null };
     } catch (error) {
       return { error: error as Error };
     }
@@ -113,30 +71,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signUp = async (email: string, password: string, name: string) => {
     try {
-      const redirectUrl = `${window.location.origin}/`;
-
-      const { error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          emailRedirectTo: redirectUrl,
-          data: {
-            name,
-          },
-        },
-      });
-      return { error };
+        const res = await apiSignUp(email, password, name);
+        if (res.error) throw new Error(res.error);
+        await checkAuth();
+        return { error: null };
     } catch (error) {
       return { error: error as Error };
     }
   };
 
   const signOut = async () => {
-    await supabase.auth.signOut();
+    await apiSignOut();
     setUser(null);
     setSession(null);
     setProfile(null);
     setRole('requestor');
+    window.location.reload(); // Force reload to clear client state
   };
 
   const hasRole = (requiredRole: AppRole | AppRole[]) => {

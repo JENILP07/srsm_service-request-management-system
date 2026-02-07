@@ -32,7 +32,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { supabase } from '@/integrations/supabase/client';
+import { getDeptPersons, createDeptPerson, updateDeptPerson, deleteDeptPerson, getDepartments, getProfiles } from '@/app/actions/admin';
 import { Plus, Search, Pencil, Trash2, Users, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
@@ -56,8 +56,8 @@ interface ServiceDeptPerson {
   to_date: string | null;
   is_hod: boolean;
   description: string | null;
-  department: ServiceDepartment;
-  profile: Profile;
+  department: ServiceDepartment | null;
+  user: Profile | null;
 }
 
 export default function DeptPersonsMaster() {
@@ -87,49 +87,30 @@ export default function DeptPersonsMaster() {
     setIsLoading(true);
 
     // Fetch departments
-    const { data: deptData } = await supabase
-      .from('service_departments')
-      .select('id, name')
-      .order('name');
-    if (deptData) setDepartments(deptData);
+    const { data: deptData } = await getDepartments();
+    // @ts-ignore
+    if (deptData) setDepartments(deptData || []);
 
     // Fetch profiles
-    const { data: profileData } = await supabase
-      .from('profiles')
-      .select('id, name, email')
-      .order('name');
-    if (profileData) setProfiles(profileData);
+    const { data: profileData } = await getProfiles();
+    // @ts-ignore
+    if (profileData) setProfiles(profileData || []);
 
     // Fetch dept persons with joins
-    const { data, error } = await supabase
-      .from('service_dept_persons')
-      .select(`
-        id,
-        department_id,
-        user_id,
-        from_date,
-        to_date,
-        is_hod,
-        description,
-        department:service_departments(id, name)
-      `)
-      .order('from_date', { ascending: false });
+    const { data, error } = await getDeptPersons();
 
     if (error) {
       toast.error('Failed to load personnel');
-      console.error(JSON.stringify(error, null, 2));
+      console.error(error);
     } else {
-      const enrichedData = data.map((item: any) => ({
-        ...item,
-        profile: profileData?.find(p => p.id === item.user_id) || { id: item.user_id, name: 'Unknown', email: '' }
-      }));
-      setPersons(enrichedData as unknown as ServiceDeptPerson[]);
+      // @ts-ignore
+      setPersons(data || []);
     }
     setIsLoading(false);
   };
 
   const filteredPersons = persons.filter(person =>
-    person.profile?.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    person.user?.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
     person.department?.name?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
@@ -151,8 +132,8 @@ export default function DeptPersonsMaster() {
       department_id: person.department_id,
       user_id: person.user_id,
       from_date: person.from_date.split('T')[0],
-      to_date: person.to_date?.split('T')[0] || '',
-      is_hod: person.is_hod,
+      to_date: person.to_date ? person.to_date.split('T')[0] : '',
+      is_hod: person.is_hod || false,
       description: person.description || '',
     });
     setIsDialogOpen(true);
@@ -176,26 +157,19 @@ export default function DeptPersonsMaster() {
     };
 
     if (editingPerson) {
-      const { error } = await supabase
-        .from('service_dept_persons')
-        .update(payload)
-        .eq('id', editingPerson.id);
+      const { error } = await updateDeptPerson(editingPerson.id, payload);
 
       if (error) {
         toast.error('Failed to update person');
-        console.error(error);
       } else {
         toast.success('Person updated successfully');
         fetchData();
       }
     } else {
-      const { error } = await supabase
-        .from('service_dept_persons')
-        .insert([payload]);
+      const { error } = await createDeptPerson(payload);
 
       if (error) {
         toast.error('Failed to add person');
-        console.error(error);
       } else {
         toast.success('Person added successfully');
         fetchData();
@@ -208,14 +182,12 @@ export default function DeptPersonsMaster() {
   };
 
   const handleDelete = async (id: string) => {
-    const { error } = await supabase
-      .from('service_dept_persons')
-      .delete()
-      .eq('id', id);
+    if (!confirm('Are you sure?')) return;
+    
+    const { error } = await deleteDeptPerson(id);
 
     if (error) {
       toast.error('Failed to delete person');
-      console.error(error);
     } else {
       toast.success('Person removed successfully');
       fetchData();
@@ -362,10 +334,10 @@ export default function DeptPersonsMaster() {
                       <div className="flex items-center gap-3">
                         <Avatar className="h-9 w-9">
                           <AvatarFallback className="text-xs bg-primary/10 text-primary">
-                            {person.profile?.name?.split(' ').map(n => n[0]).join('') || '?'}
+                            {person.user?.name?.split(' ').map(n => n[0]).join('') || '?'}
                           </AvatarFallback>
                         </Avatar>
-                        <span className="font-medium">{person.profile?.name || 'Unknown'}</span>
+                        <span className="font-medium">{person.user?.name || 'Unknown'}</span>
                       </div>
                     </TableCell>
                     <TableCell>{person.department?.name || 'Unknown'}</TableCell>
