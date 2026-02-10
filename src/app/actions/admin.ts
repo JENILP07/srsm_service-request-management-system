@@ -2,6 +2,7 @@
 
 import prisma from '@/lib/prisma'
 import { getSession } from '@/lib/session'
+import { v4 as uuidv4 } from 'uuid'
 
 // Helper to check admin role
 async function checkAdmin() {
@@ -63,6 +64,7 @@ export async function createDepartment(data: {
         
         const dept = await prisma.serviceDepartment.create({
             data: {
+                id: uuidv4(),
                 name: data.name,
                 description: data.description,
                 cc_email: data.cc_email,
@@ -141,6 +143,7 @@ export async function createServiceType(data: {
         
         const type = await prisma.serviceType.create({
             data: {
+                id: uuidv4(),
                 name: data.name,
                 description: data.description,
                 sequence: data.sequence,
@@ -225,6 +228,7 @@ export async function createStatus(data: {
         
         const status = await prisma.serviceRequestStatus.create({
             data: {
+                id: uuidv4(),
                 name: data.name,
                 system_name: data.system_name,
                 sequence: data.sequence,
@@ -323,6 +327,7 @@ export async function createRequestType(data: {
         
         const type = await prisma.serviceRequestType.create({
             data: {
+                id: uuidv4(),
                 name: data.name,
                 description: data.description,
                 sequence: data.sequence,
@@ -431,6 +436,7 @@ export async function createDeptPerson(data: {
         
         const person = await prisma.serviceDeptPerson.create({
             data: {
+                id: uuidv4(),
                 department_id: data.department_id,
                 user_id: data.user_id,
                 from_date: new Date(data.from_date),
@@ -529,6 +535,7 @@ export async function createTypePersonMap(data: {
         
         const map = await prisma.serviceRequestTypePerson.create({
             data: {
+                id: uuidv4(),
                 service_request_type_id: data.service_request_type_id,
                 user_id: data.user_id,
                 from_date: data.from_date ? new Date(data.from_date) : null,

@@ -29,6 +29,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Plus, Search, Filter, ArrowUpDown, Eye, ClipboardList, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { PriorityLevel } from '@/types/service-request';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Skeleton } from '@/components/ui/skeleton';
 
 interface ServiceRequest {
   id: string;
@@ -55,6 +57,21 @@ interface ServiceRequestStatus {
   id: string;
   name: string;
 }
+
+const listContainer = {
+  hidden: { opacity: 0 },
+  show: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.05
+    }
+  }
+};
+
+const listItem = {
+  hidden: { opacity: 0, x: -10 },
+  show: { opacity: 1, x: 0 }
+};
 
 export default function RequestsList() {
   const { user, role } = useAuth();
@@ -114,13 +131,18 @@ export default function RequestsList() {
   });
 
   return (
-    <div className="space-y-6 animate-fade-in">
+    <motion.div 
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4 }}
+      className="space-y-6"
+    >
       <PageHeader
         title={role === 'requestor' ? 'My Requests' : 'All Requests'}
         description="View and manage service requests"
       >
         {role === 'requestor' && (
-          <Button asChild className="gap-2 gradient-primary shadow-glow">
+          <Button asChild className="gap-2 gradient-primary shadow-glow hover:scale-105 transition-transform">
             <Link href="/requests/new">
               <Plus className="h-4 w-4" />
               New Request
@@ -175,78 +197,102 @@ export default function RequestsList() {
       {/* Requests Table */}
       <Card>
         <CardContent className="p-0">
-          {isLoading ? (
-            <div className="flex items-center justify-center py-12">
-              <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            </div>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-[130px]">Request No</TableHead>
-                  <TableHead>Title</TableHead>
-                  <TableHead className="hidden md:table-cell">Department</TableHead>
-                  <TableHead className="hidden sm:table-cell">Date</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Priority</TableHead>
-                  <TableHead className="w-[80px]"></TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {sortedRequests.map((request) => (
-                  <TableRow key={request.id} className="group">
-                    <TableCell className="font-mono text-sm">{request.request_no}</TableCell>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-[130px]">Request No</TableHead>
+                <TableHead>Title</TableHead>
+                <TableHead className="hidden md:table-cell">Department</TableHead>
+                <TableHead className="hidden sm:table-cell">Date</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Priority</TableHead>
+                <TableHead className="w-[80px]"></TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {isLoading ? (
+                // Skeleton Loader
+                Array.from({ length: 5 }).map((_, index) => (
+                  <TableRow key={index}>
+                    <TableCell><Skeleton className="h-4 w-20" /></TableCell>
                     <TableCell>
-                      <div className="max-w-[300px]">
-                        <p className="font-medium truncate">{request.title}</p>
-                        <p className="text-sm text-muted-foreground truncate md:hidden">
-                          {request.service_request_type?.department?.name}
-                        </p>
+                      <div className="space-y-2">
+                        <Skeleton className="h-4 w-40" />
+                        <Skeleton className="h-3 w-24 md:hidden" />
                       </div>
                     </TableCell>
-                    <TableCell className="hidden md:table-cell text-muted-foreground">
-                      {request.service_request_type?.department?.name}
-                    </TableCell>
-                    <TableCell className="hidden sm:table-cell text-muted-foreground">
-                      {format(new Date(request.request_datetime), 'MMM d, yyyy')}
-                    </TableCell>
-                    <TableCell>
-                      <StatusBadge status={request.status?.name || 'Pending'} />
-                    </TableCell>
-                    <TableCell>
-                      <PriorityBadge priority={request.priority_level as PriorityLevel} showIcon={false} />
-                    </TableCell>
-                    <TableCell>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        asChild
-                        className="opacity-0 group-hover:opacity-100 transition-opacity"
-                      >
-                        <Link href={`/requests/${request.id}`}>
-                          <Eye className="h-4 w-4" />
-                        </Link>
-                      </Button>
-                    </TableCell>
+                    <TableCell className="hidden md:table-cell"><Skeleton className="h-4 w-24" /></TableCell>
+                    <TableCell className="hidden sm:table-cell"><Skeleton className="h-4 w-24" /></TableCell>
+                    <TableCell><Skeleton className="h-6 w-20 rounded-full" /></TableCell>
+                    <TableCell><Skeleton className="h-6 w-16 rounded-full" /></TableCell>
+                    <TableCell><Skeleton className="h-8 w-8 rounded-md" /></TableCell>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
-
-          {!isLoading && sortedRequests.length === 0 && (
-            <div className="text-center py-12">
-              <ClipboardList className="h-12 w-12 mx-auto text-muted-foreground/50 mb-3" />
-              <p className="text-muted-foreground">No requests found</p>
-              {role === 'requestor' && (
-                <Button asChild variant="link" className="mt-2">
-                  <Link href="/requests/new">Create your first request</Link>
-                </Button>
+                ))
+              ) : sortedRequests.length > 0 ? (
+                <AnimatePresence>
+                  {sortedRequests.map((request, index) => (
+                    <motion.tr
+                      key={request.id}
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: index * 0.05 }}
+                      className="group border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted"
+                    >
+                      <TableCell className="font-mono text-sm">{request.request_no}</TableCell>
+                      <TableCell>
+                        <div className="max-w-[300px]">
+                          <p className="font-medium truncate">{request.title}</p>
+                          <p className="text-sm text-muted-foreground truncate md:hidden">
+                            {request.service_request_type?.department?.name}
+                          </p>
+                        </div>
+                      </TableCell>
+                      <TableCell className="hidden md:table-cell text-muted-foreground">
+                        {request.service_request_type?.department?.name}
+                      </TableCell>
+                      <TableCell className="hidden sm:table-cell text-muted-foreground">
+                        {format(new Date(request.request_datetime), 'MMM d, yyyy')}
+                      </TableCell>
+                      <TableCell>
+                        <StatusBadge status={request.status?.name || 'Pending'} />
+                      </TableCell>
+                      <TableCell>
+                        <PriorityBadge priority={request.priority_level as PriorityLevel} showIcon={false} />
+                      </TableCell>
+                      <TableCell>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          asChild
+                          className="opacity-0 group-hover:opacity-100 transition-all hover:scale-110"
+                        >
+                          <Link href={`/requests/${request.id}`}>
+                            <Eye className="h-4 w-4" />
+                          </Link>
+                        </Button>
+                      </TableCell>
+                    </motion.tr>
+                  ))}
+                </AnimatePresence>
+              ) : (
+                <TableRow>
+                  <TableCell colSpan={7} className="h-24 text-center">
+                    <div className="flex flex-col items-center justify-center py-6 text-center">
+                      <ClipboardList className="h-12 w-12 text-muted-foreground/50 mb-3" />
+                      <p className="text-muted-foreground">No requests found</p>
+                      {role === 'requestor' && (
+                        <Button asChild variant="link" className="mt-2">
+                          <Link href="/requests/new">Create your first request</Link>
+                        </Button>
+                      )}
+                    </div>
+                  </TableCell>
+                </TableRow>
               )}
-            </div>
-          )}
+            </TableBody>
+          </Table>
         </CardContent>
       </Card>
-    </div>
+    </motion.div>
   );
 }

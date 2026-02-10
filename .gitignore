@@ -77,3 +77,8 @@ coverage/
 *.log
 
 /src/generated/prisma
+
+AGENTS.md
+GEMINI.md
+ls
+ls.pub

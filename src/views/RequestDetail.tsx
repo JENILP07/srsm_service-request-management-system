@@ -28,6 +28,7 @@ import {
 import { format, formatDistanceToNow } from 'date-fns';
 import { toast } from 'sonner';
 import { z } from 'zod';
+import { motion, AnimatePresence } from 'framer-motion';
 
 // Zod schema for reply validation
 const replySchema = z.object({
@@ -185,19 +186,36 @@ export default function RequestDetail() {
   const canUpdateStatus = role === 'technician' || role === 'hod' || role === 'admin';
 
   return (
-    <div className="space-y-6 animate-fade-in max-w-4xl mx-auto">
+    <motion.div 
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.5 }}
+      className="space-y-6 max-w-4xl mx-auto"
+    >
       {/* Header */}
       <div className="flex items-start gap-4">
-        <Button variant="ghost" size="icon" onClick={() => router.back()} className="mt-1">
+        <Button variant="ghost" size="icon" onClick={() => router.back()} className="mt-1 hover:bg-accent hover:text-accent-foreground">
           <ArrowLeft className="h-5 w-5" />
         </Button>
         <div className="flex-1">
-          <div className="flex items-center gap-3 mb-2">
-            <span className="font-mono text-sm text-muted-foreground">{request.request_no}</span>
+          <motion.div 
+            initial={{ y: -10, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ delay: 0.1 }}
+            className="flex items-center gap-3 mb-2"
+          >
+            <span className="font-mono text-sm text-muted-foreground bg-muted px-2 py-0.5 rounded">{request.request_no}</span>
             <StatusBadge status={request.status?.name || 'Pending'} />
             <PriorityBadge priority={request.priority_level as PriorityLevel} />
-          </div>
-          <h1 className="text-2xl font-bold font-display">{request.title}</h1>
+          </motion.div>
+          <motion.h1 
+            initial={{ x: -10, opacity: 0 }}
+            animate={{ x: 0, opacity: 1 }}
+            transition={{ delay: 0.2 }}
+            className="text-2xl font-bold font-display"
+          >
+            {request.title}
+          </motion.h1>
         </div>
       </div>
 
@@ -205,123 +223,161 @@ export default function RequestDetail() {
         {/* Main Content */}
         <div className="lg:col-span-2 space-y-6">
           {/* Description */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Description</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="whitespace-pre-wrap text-muted-foreground">{request.description}</p>
-            </CardContent>
-          </Card>
+          <motion.div
+            initial={{ y: 20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ delay: 0.3 }}
+          >
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Description</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="whitespace-pre-wrap text-muted-foreground leading-relaxed">{request.description}</p>
+              </CardContent>
+            </Card>
+          </motion.div>
 
           {/* Activity / Replies */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base flex items-center gap-2">
-                <MessageSquare className="h-4 w-4" />
-                Activity ({replies.length})
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {replies.length > 0 ? (
-                replies.map((reply) => (
-                  <div key={reply.id} className="flex gap-3">
-                    <Avatar className="h-8 w-8">
-                      <AvatarFallback className="text-xs bg-primary/10 text-primary">
-                        {reply.user?.name?.split(' ').map(n => n[0]).join('') || '?'}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="flex-1 space-y-1">
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium text-sm">{reply.user?.name || 'Unknown'}</span>
-                        <span className="text-xs text-muted-foreground">
-                          {formatDistanceToNow(new Date(reply.reply_datetime), { addSuffix: true })}
-                        </span>
+          <motion.div
+             initial={{ y: 20, opacity: 0 }}
+             animate={{ y: 0, opacity: 1 }}
+             transition={{ delay: 0.4 }}
+          >
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base flex items-center gap-2">
+                  <MessageSquare className="h-4 w-4" />
+                  Activity ({replies.length})
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="space-y-6 relative before:absolute before:inset-0 before:ml-4 before:h-full before:w-0.5 before:-translate-x-1/2 before:bg-gradient-to-b before:from-border before:to-transparent before:content-['']">
+                {replies.length > 0 ? (
+                  replies.map((reply, index) => (
+                    <motion.div 
+                      key={reply.id} 
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: 0.1 * index }}
+                      className="flex gap-4 relative"
+                    >
+                      <Avatar className="h-8 w-8 border-2 border-background shadow-sm z-10">
+                        <AvatarFallback className="text-xs bg-primary text-primary-foreground font-bold">
+                          {reply.user?.name?.split(' ').map(n => n[0]).join('') || '?'}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1 space-y-1 bg-muted/30 p-3 rounded-lg border border-border/50">
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="font-medium text-sm">{reply.user?.name || 'Unknown'}</span>
+                          <span className="text-xs text-muted-foreground">
+                            {formatDistanceToNow(new Date(reply.reply_datetime), { addSuffix: true })}
+                          </span>
+                        </div>
                         {reply.status && (
-                          <StatusBadge status={reply.status.name} className="text-[10px] px-1.5 py-0" />
+                          <div className="mb-2">
+                             <StatusBadge status={reply.status.name} className="text-[10px] px-1.5 py-0 scale-90 origin-left" />
+                          </div>
                         )}
+                        <p className="text-sm text-foreground/90">{reply.reply_description}</p>
                       </div>
-                      <p className="text-sm text-muted-foreground">{reply.reply_description}</p>
-                    </div>
-                  </div>
-                ))
-              ) : (
-                <p className="text-sm text-muted-foreground text-center py-4">No activity yet</p>
-              )}
+                    </motion.div>
+                  ))
+                ) : (
+                  <p className="text-sm text-muted-foreground text-center py-4 relative z-10 bg-background">No activity yet</p>
+                )}
+                </div>
 
-              {canReply && (
-                <>
-                  <Separator />
-                  <div className="space-y-3">
-                    <Textarea
-                      placeholder="Add a reply or update..."
-                      value={replyText}
-                      onChange={(e) => setReplyText(e.target.value)}
-                      rows={3}
-                    />
-                    <div className="flex justify-end">
-                      <Button
-                        onClick={handleReply}
-                        disabled={!replyText.trim() || isSubmitting}
-                        className="gap-2"
-                      >
-                        {isSubmitting ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : (
-                          <Send className="h-4 w-4" />
-                        )}
-                        {isSubmitting ? 'Posting...' : 'Post Reply'}
-                      </Button>
+                {canReply && (
+                  <>
+                    <Separator />
+                    <div className="space-y-3 pt-2">
+                      <Textarea
+                        placeholder="Add a reply or update..."
+                        value={replyText}
+                        onChange={(e) => setReplyText(e.target.value)}
+                        rows={3}
+                        className="resize-none focus-visible:ring-offset-0"
+                      />
+                      <div className="flex justify-end">
+                        <Button
+                          onClick={handleReply}
+                          disabled={!replyText.trim() || isSubmitting}
+                          className="gap-2 gradient-primary"
+                        >
+                          {isSubmitting ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <Send className="h-4 w-4" />
+                          )}
+                          {isSubmitting ? 'Posting...' : 'Post Reply'}
+                        </Button>
+                      </div>
                     </div>
-                  </div>
-                </>
-              )}
-            </CardContent>
-          </Card>
+                  </>
+                )}
+              </CardContent>
+            </Card>
+          </motion.div>
         </div>
 
         {/* Sidebar */}
-        <div className="space-y-6">
+        <motion.div 
+          initial={{ x: 20, opacity: 0 }}
+          animate={{ x: 0, opacity: 1 }}
+          transition={{ delay: 0.5 }}
+          className="space-y-6"
+        >
           {/* Details */}
           <Card>
             <CardHeader>
               <CardTitle className="text-base">Details</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="flex items-center gap-3 text-sm">
-                <Building2 className="h-4 w-4 text-muted-foreground" />
+              <div className="flex items-center gap-3 text-sm group">
+                <div className="p-2 rounded-md bg-muted group-hover:bg-primary/10 transition-colors">
+                  <Building2 className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
+                </div>
                 <div>
-                  <p className="text-muted-foreground">Department</p>
+                  <p className="text-muted-foreground text-xs uppercase tracking-wider">Department</p>
                   <p className="font-medium">{request.service_request_type?.department?.name}</p>
                 </div>
               </div>
-              <div className="flex items-center gap-3 text-sm">
-                <Calendar className="h-4 w-4 text-muted-foreground" />
+              <div className="flex items-center gap-3 text-sm group">
+                <div className="p-2 rounded-md bg-muted group-hover:bg-primary/10 transition-colors">
+                  <Calendar className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
+                </div>
                 <div>
-                  <p className="text-muted-foreground">Created</p>
+                  <p className="text-muted-foreground text-xs uppercase tracking-wider">Created</p>
                   <p className="font-medium">{format(new Date(request.request_datetime), 'PPP')}</p>
                 </div>
               </div>
-              <div className="flex items-center gap-3 text-sm">
-                <User className="h-4 w-4 text-muted-foreground" />
+              <div className="flex items-center gap-3 text-sm group">
+                <div className="p-2 rounded-md bg-muted group-hover:bg-primary/10 transition-colors">
+                   <User className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
+                </div>
                 <div>
-                  <p className="text-muted-foreground">Requested By</p>
+                  <p className="text-muted-foreground text-xs uppercase tracking-wider">Requested By</p>
                   <p className="font-medium">{request.requester?.name}</p>
                 </div>
               </div>
               {request.assigned_to_user && (
-                <div className="flex items-center gap-3 text-sm">
-                  <CheckCircle2 className="h-4 w-4 text-muted-foreground" />
+                <div className="flex items-center gap-3 text-sm group">
+                  <div className="p-2 rounded-md bg-muted group-hover:bg-primary/10 transition-colors">
+                     <CheckCircle2 className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
+                  </div>
                   <div>
-                    <p className="text-muted-foreground">Assigned To</p>
+                    <p className="text-muted-foreground text-xs uppercase tracking-wider">Assigned To</p>
                     <p className="font-medium">{request.assigned_to_user.name}</p>
                   </div>
                 </div>
               )}
-              <div className="flex items-center gap-3 text-sm">
-                <Clock className="h-4 w-4 text-muted-foreground" />
+              <div className="flex items-center gap-3 text-sm group">
+                <div className="p-2 rounded-md bg-muted group-hover:bg-primary/10 transition-colors">
+                   <Clock className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
+                </div>
                 <div>
-                  <p className="text-muted-foreground">Request Type</p>
+                  <p className="text-muted-foreground text-xs uppercase tracking-wider">Request Type</p>
                   <p className="font-medium">{request.service_request_type?.name}</p>
                 </div>
               </div>
@@ -359,20 +415,20 @@ export default function RequestDetail() {
                 )}
 
                 {request.status?.name === 'Pending' && (
-                  <Button className="w-full" variant="outline">
+                  <Button className="w-full transition-transform active:scale-95" variant="outline">
                     Mark In Progress
                   </Button>
                 )}
                 {request.status?.name === 'In Progress' && (
-                  <Button className="w-full gradient-primary">
+                  <Button className="w-full gradient-primary shadow-lg transition-transform hover:scale-105 active:scale-95">
                     Mark Completed
                   </Button>
                 )}
               </CardContent>
             </Card>
           )}
-        </div>
+        </motion.div>
       </div>
-    </div>
+    </motion.div>
   );
 }

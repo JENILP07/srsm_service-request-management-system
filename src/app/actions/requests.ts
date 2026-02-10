@@ -3,6 +3,7 @@
 import prisma from '@/lib/prisma'
 import { getSession } from '@/lib/session'
 import { AppRole } from '@prisma/client'
+import { v4 as uuidv4 } from 'uuid'
 
 // Helper to get current user and role securely
 async function getCurrentUser() {
@@ -104,6 +105,7 @@ export async function createRequest(data: {
 
         const request = await prisma.serviceRequest.create({
             data: {
+                id: uuidv4(),
                 title: data.title,
                 description: data.description,
                 priority_level: data.priority_level,
@@ -194,6 +196,7 @@ export async function addReply(requestId: string, description: string) {
 
         const reply = await prisma.serviceRequestReply.create({
             data: {
+                id: uuidv4(),
                 service_request_id: requestId,
                 user_id: user.id,
                 reply_description: description,
@@ -253,6 +256,7 @@ export async function assignTechnician(requestId: string, technicianId: string) 
         
         await prisma.serviceRequestReply.create({
             data: {
+                id: uuidv4(),
                 service_request_id: requestId,
                 user_id: user.id,
                 reply_description: `Assigned request to ${technician?.name || 'Technician'}`,

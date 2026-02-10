@@ -4,6 +4,20 @@ import prisma from '@/lib/prisma'
 import { cookies } from 'next/headers'
 import { encrypt, decrypt } from '@/lib/session'
 import { AppRole } from '@prisma/client'
+import { compare, hash } from 'bcryptjs'
+import { v4 as uuidv4 } from 'uuid'
+
+const SESSION_COOKIE_NAME = 'session'
+
+function getSessionCookieOptions(expires: Date) {
+  return {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax' as const,
+    path: '/',
+    expires,
+  }
+}
 
 export async function getUserProfile(userId: string) {
   try {
@@ -36,46 +50,67 @@ export async function signIn(email: string, password: string) {
       where: { email },
     })
 
-    if (!profile) {
-      return { error: 'User not found' }
+    if (!profile?.password_hash) {
+      return { error: 'Invalid credentials' }
     }
 
-    // MOCK PASSWORD CHECK
-    const match = true 
-
+    const match = await compare(password, profile.password_hash)
     if (!match) {
-        return { error: 'Invalid credentials' }
+      return { error: 'Invalid credentials' }
     }
 
     const expires = new Date(Date.now() + 24 * 60 * 60 * 1000)
     const session = await encrypt({ user: { id: profile.id, email: profile.email }, expires })
 
-    ;(await cookies()).set('session', session, { expires, httpOnly: true })
+    ;(await cookies()).set(SESSION_COOKIE_NAME, session, getSessionCookieOptions(expires))
 
     return { error: null }
   } catch (error) {
-    return { error: 'Something went wrong' }
+    return { error: 'Invalid credentials' }
   }
 }
 
 export async function signOut() {
-  (await cookies()).delete('session')
+  (await cookies()).delete(SESSION_COOKIE_NAME)
 }
 
 export async function signUp(email: string, password: string, name: string) {
     try {
-        // Mock implementation
-        // 1. Create Profile
-        // 2. Create UserRole
-        // 3. Create Session
-        return { error: "Sign up not fully implemented in migration" }
+        const existing = await prisma.profile.findFirst({ where: { email } })
+        if (existing) {
+            return { error: 'Email already in use' }
+        }
+
+        const passwordHash = await hash(password, 10)
+        const profile = await prisma.profile.create({
+            data: {
+                id: uuidv4(),
+                email,
+                name,
+                password_hash: passwordHash,
+            }
+        })
+
+        await prisma.userRole.create({
+            data: {
+                id: uuidv4(),
+                user_id: profile.id,
+                role: AppRole.requestor
+            }
+        })
+
+        const expires = new Date(Date.now() + 24 * 60 * 60 * 1000)
+        const session = await encrypt({ user: { id: profile.id, email: profile.email }, expires })
+        ;(await cookies()).set(SESSION_COOKIE_NAME, session, getSessionCookieOptions(expires))
+
+        return { error: null }
     } catch (error) {
         return { error: 'Sign up failed' }
     }
 }
 
 export async function getAuthData() {
-    const sessionCookie = (await cookies()).get('session')
+    const sessionCookie = (await cookies()).get(SESSION_COOKIE_NAME)
     if (!sessionCookie) {
         return { user: null, profile: null, role: 'requestor' }
     }

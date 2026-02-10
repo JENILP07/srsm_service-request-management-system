@@ -149,7 +149,7 @@ graph TB
 ### Prerequisites
 ```bash
 Node.js >= 18.0.0
-npm >= 9.0.0 (or yarn/bun)
+npm >= 9.0.0
 Supabase account
 ```
 
@@ -167,6 +167,9 @@ npm install
 # .env.local
 NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+DATABASE_URL="postgresql://user:password@host:port/dbname?sslmode=verify-full"
+JWT_SECRET=your_long_random_secret
+SEED_DEFAULT_PASSWORD=ChangeMe123! # optional, used by prisma/seed.ts
 ```
 
 3️⃣ **Database Setup**
@@ -176,11 +179,20 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
 1. setup_database.sql
 2. seed_data.sql (optional)
 ```
+```bash
+# Prisma migration (adds credential auth field)
+prisma/migrations/20260207_add_password_hash/migration.sql
+```
 
 4️⃣ **Launch Development Server**
 ```bash
 npm run dev
 # Open http://localhost:3000
+```
+
+5️⃣ **Run Smoke Tests**
+```bash
+npm run test
 ```
 
 ### First-Time Login

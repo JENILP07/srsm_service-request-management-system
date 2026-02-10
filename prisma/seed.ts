@@ -2,6 +2,7 @@ import { PrismaClient, AppRole } from '@prisma/client'
 import { PrismaPg } from '@prisma/adapter-pg'
 import pg from 'pg'
 import { v4 as uuidv4 } from 'uuid'
+import { hash } from 'bcryptjs'
 
 const connectionString = process.env.DATABASE_URL
 
@@ -29,6 +30,8 @@ async function main() {
   const hodEmail = 'hod@example.com'
   const techEmail = 'tech@example.com'
   const userEmail = 'user@example.com'
+  const defaultPassword = process.env.SEED_DEFAULT_PASSWORD || 'ChangeMe123!'
+  const defaultPasswordHash = await hash(defaultPassword, 10)
 
   // Helper to get or create user
   async function upsertUser(email: string, name: string, seed: string) {
@@ -40,6 +43,7 @@ async function main() {
         id: uuidv4(),
         email,
         name,
+        password_hash: defaultPasswordHash,
         avatar_url: `https://api.dicebear.com/7.x/avataaars/svg?seed=${seed}`,
       }
     })

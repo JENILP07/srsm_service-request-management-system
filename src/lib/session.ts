@@ -4,7 +4,28 @@ import { SignJWT, jwtVerify } from 'jose'
 import { cookies } from 'next/headers'
 import { NextRequest, NextResponse } from 'next/server'
 
-const key = new TextEncoder().encode(process.env.JWT_SECRET || 'default_secret_key_change_me')
+function getJwtSecret() {
+  const secret = process.env.JWT_SECRET
+  if (!secret) {
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error('JWT_SECRET is required in production')
+    }
+    return 'dev_insecure_secret_change_me'
+  }
+  return secret
+}
+
+const key = new TextEncoder().encode(getJwtSecret())
+
+function getSessionCookieOptions(expires: Date) {
+  return {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax' as const,
+    path: '/',
+    expires,
+  }
+}
 
 export async function encrypt(payload: any) {
   return await new SignJWT(payload)
@@ -38,8 +59,7 @@ export async function updateSession(request: NextRequest) {
   res.cookies.set({
     name: 'session',
     value: await encrypt(parsed),
-    httpOnly: true,
-    expires: parsed.expires,
+    ...getSessionCookieOptions(parsed.expires),
   })
   return res
 }

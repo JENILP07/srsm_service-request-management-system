@@ -23,6 +23,7 @@ import { PriorityLevel } from '@/types/service-request';
 import { ArrowLeft, Send, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { z } from 'zod';
+import { motion } from 'framer-motion';
 
 // Zod schema for server-side style validation
 const serviceRequestSchema = z.object({
@@ -142,10 +143,20 @@ export default function NewRequest() {
     );
   }
 
+  const formItemVariants = {
+    hidden: { opacity: 0, y: 10 },
+    visible: { opacity: 1, y: 0 }
+  };
+
   return (
-    <div className="space-y-6 animate-fade-in max-w-3xl mx-auto">
+    <motion.div 
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5 }}
+      className="space-y-6 max-w-3xl mx-auto"
+    >
       <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" onClick={() => router.back()}>
+        <Button variant="ghost" size="icon" onClick={() => router.back()} className="hover:bg-accent hover:text-accent-foreground transition-colors">
           <ArrowLeft className="h-5 w-5" />
         </Button>
         <PageHeader
@@ -155,7 +166,7 @@ export default function NewRequest() {
       </div>
 
       <form onSubmit={handleSubmit}>
-        <Card>
+        <Card className="border-l-4 border-l-primary/50 shadow-md">
           <CardHeader>
             <CardTitle>Request Details</CardTitle>
             <CardDescription>
@@ -163,110 +174,123 @@ export default function NewRequest() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
-            {/* Service Type */}
-            <div className="grid gap-2">
-              <Label htmlFor="serviceType">Service Category *</Label>
-              <Select value={selectedServiceType} onValueChange={setSelectedServiceType}>
-                <SelectTrigger id="serviceType">
-                  <SelectValue placeholder="Select a service category" />
-                </SelectTrigger>
-                <SelectContent>
-                  {serviceTypes.map(type => (
-                    <SelectItem key={type.id} value={type.id}>
-                      {type.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            <motion.div 
+              initial="hidden"
+              animate="visible"
+              transition={{ staggerChildren: 0.1 }}
+              className="space-y-6"
+            >
+              {/* Service Type */}
+              <motion.div variants={formItemVariants} className="grid gap-2">
+                <Label htmlFor="serviceType">Service Category *</Label>
+                <Select value={selectedServiceType} onValueChange={setSelectedServiceType}>
+                  <SelectTrigger id="serviceType" className="h-11">
+                    <SelectValue placeholder="Select a service category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {serviceTypes.map(type => (
+                      <SelectItem key={type.id} value={type.id}>
+                        {type.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </motion.div>
 
-            {/* Request Type */}
-            <div className="grid gap-2">
-              <Label htmlFor="requestType">Request Type *</Label>
-              <Select
-                value={selectedRequestType}
-                onValueChange={setSelectedRequestType}
-                disabled={!selectedServiceType}
-              >
-                <SelectTrigger id="requestType">
-                  <SelectValue placeholder={selectedServiceType ? "Select request type" : "First select a service category"} />
-                </SelectTrigger>
-                <SelectContent>
-                  {filteredRequestTypes.map(type => (
-                    <SelectItem key={type.id} value={type.id}>
-                      <div className="flex flex-col">
-                        <span>{type.name}</span>
-                        <span className="text-xs text-muted-foreground">{type.department?.name}</span>
+              {/* Request Type */}
+              <motion.div variants={formItemVariants} className="grid gap-2">
+                <Label htmlFor="requestType">Request Type *</Label>
+                <Select
+                  value={selectedRequestType}
+                  onValueChange={setSelectedRequestType}
+                  disabled={!selectedServiceType}
+                >
+                  <SelectTrigger id="requestType" className="h-11">
+                    <SelectValue placeholder={selectedServiceType ? "Select request type" : "First select a service category"} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {filteredRequestTypes.map(type => (
+                      <SelectItem key={type.id} value={type.id}>
+                        <div className="flex flex-col">
+                          <span>{type.name}</span>
+                          <span className="text-xs text-muted-foreground">{type.department?.name}</span>
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {selectedRequestTypeDetails && (
+                  <motion.p 
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="text-sm text-muted-foreground"
+                  >
+                    Will be handled by: <span className="font-medium text-foreground">{selectedRequestTypeDetails.department?.name}</span>
+                  </motion.p>
+                )}
+              </motion.div>
+
+              {/* Priority */}
+              <motion.div variants={formItemVariants} className="grid gap-2">
+                <Label htmlFor="priority">Priority Level *</Label>
+                <Select value={selectedPriority} onValueChange={(v) => setSelectedPriority(v as PriorityLevel)}>
+                  <SelectTrigger id="priority" className="h-11">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Low">
+                      <div className="flex items-center gap-2">
+                        <span className="w-2 h-2 rounded-full bg-priority-low" />
+                        Low - Can wait a few days
                       </div>
                     </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {selectedRequestTypeDetails && (
-                <p className="text-sm text-muted-foreground">
-                  Will be handled by: {selectedRequestTypeDetails.department?.name}
-                </p>
-              )}
-            </div>
+                    <SelectItem value="Medium">
+                      <div className="flex items-center gap-2">
+                        <span className="w-2 h-2 rounded-full bg-priority-medium" />
+                        Medium - Needs attention soon
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="High">
+                      <div className="flex items-center gap-2">
+                        <span className="w-2 h-2 rounded-full bg-priority-high" />
+                        High - Urgent, impacts work
+                      </div>
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </motion.div>
 
-            {/* Priority */}
-            <div className="grid gap-2">
-              <Label htmlFor="priority">Priority Level *</Label>
-              <Select value={selectedPriority} onValueChange={(v) => setSelectedPriority(v as PriorityLevel)}>
-                <SelectTrigger id="priority">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Low">
-                    <div className="flex items-center gap-2">
-                      <span className="w-2 h-2 rounded-full bg-priority-low" />
-                      Low - Can wait a few days
-                    </div>
-                  </SelectItem>
-                  <SelectItem value="Medium">
-                    <div className="flex items-center gap-2">
-                      <span className="w-2 h-2 rounded-full bg-priority-medium" />
-                      Medium - Needs attention soon
-                    </div>
-                  </SelectItem>
-                  <SelectItem value="High">
-                    <div className="flex items-center gap-2">
-                      <span className="w-2 h-2 rounded-full bg-priority-high" />
-                      High - Urgent, impacts work
-                    </div>
-                  </SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+              {/* Title */}
+              <motion.div variants={formItemVariants} className="grid gap-2">
+                <Label htmlFor="title">Request Title *</Label>
+                <Input
+                  id="title"
+                  placeholder="Brief summary of your request"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  required
+                  maxLength={250}
+                  className="h-11"
+                />
+                <p className="text-xs text-muted-foreground text-right">{title.length}/250</p>
+              </motion.div>
 
-            {/* Title */}
-            <div className="grid gap-2">
-              <Label htmlFor="title">Request Title *</Label>
-              <Input
-                id="title"
-                placeholder="Brief summary of your request"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                required
-                maxLength={250}
-              />
-              <p className="text-xs text-muted-foreground text-right">{title.length}/250</p>
-            </div>
-
-            {/* Description */}
-            <div className="grid gap-2">
-              <Label htmlFor="description">Description *</Label>
-              <Textarea
-                id="description"
-                placeholder="Please provide detailed information about your request..."
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                required
-                rows={5}
-                maxLength={2000}
-              />
-              <p className="text-xs text-muted-foreground text-right">{description.length}/2000</p>
-            </div>
+              {/* Description */}
+              <motion.div variants={formItemVariants} className="grid gap-2">
+                <Label htmlFor="description">Description *</Label>
+                <Textarea
+                  id="description"
+                  placeholder="Please provide detailed information about your request..."
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  required
+                  rows={5}
+                  maxLength={2000}
+                  className="resize-y"
+                />
+                <p className="text-xs text-muted-foreground text-right">{description.length}/2000</p>
+              </motion.div>
+            </motion.div>
 
             {/* Attachments - Feature coming soon */}
             {/* File upload functionality will be implemented with proper security controls */}
@@ -274,13 +298,18 @@ export default function NewRequest() {
         </Card>
 
         {/* Submit */}
-        <div className="flex justify-end gap-3 mt-6">
+        <motion.div 
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.5 }}
+          className="flex justify-end gap-3 mt-6"
+        >
           <Button type="button" variant="outline" onClick={() => router.back()}>
             Cancel
           </Button>
           <Button
             type="submit"
-            className="gap-2 gradient-primary"
+            className="gap-2 gradient-primary shadow-lg transition-transform hover:scale-105 active:scale-95"
             disabled={!selectedRequestType || !title || !description || isSubmitting}
           >
             {isSubmitting ? (
@@ -295,8 +324,8 @@ export default function NewRequest() {
               </>
             )}
           </Button>
-        </div>
+        </motion.div>
       </form>
-    </div>
+    </motion.div>
   );
 }

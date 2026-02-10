@@ -9,7 +9,7 @@ TaskPathPal is an enterprise-grade Service Request Management System (SRSM) buil
 ### Main Technologies
 - **Frontend:** Next.js 15 (App Router), React 18, Tailwind CSS, Shadcn UI.
 - **Backend:** Supabase (PostgreSQL), Next.js Server Actions.
-- **ORM:** Prisma 7.3.0.
+- **ORM:** Prisma 6.19.2.
 - **State Management:** React Context (Auth), Server Actions.
 - **Validation:** Zod.
 - **Authentication:** Custom session management using JOSE (JWT) and cookies.
@@ -26,7 +26,7 @@ TaskPathPal is an enterprise-grade Service Request Management System (SRSM) buil
 
 ### Prerequisites
 - Node.js >= 18.0.0
-- npm (or bun/pnpm)
+- npm
 - A running PostgreSQL database (Neon/Supabase)
 
 ### Installation
@@ -39,14 +39,17 @@ Create a `.env` file in the root directory with the following variables:
 ```env
 NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
-DATABASE_URL="postgresql://user:password@host:port/dbname?sslmode=require"
+DATABASE_URL="postgresql://user:password@host:port/dbname?sslmode=verify-full"
+JWT_SECRET=your_long_random_secret
+SEED_DEFAULT_PASSWORD=ChangeMe123! # optional, used by prisma/seed.ts
 ```
 
 ### Database Management
 - **Introspect Database:** `npx prisma db pull`
 - **Generate Client:** `npx prisma generate`
 - **Seed Data:** `npx prisma db seed` (Requires `tsx`)
-- **Note:** Prisma 7 configuration is managed in `prisma.config.ts`.
+- **Note:** Prisma configuration is managed in `prisma.config.ts`.
+- **Migration:** Apply `prisma/migrations/20260207_add_password_hash/migration.sql` to add credential auth support.
 
 ### Running Development Server
 ```bash
@@ -79,6 +82,7 @@ npm run dev
 ### 5. Seeding and Testing
 - The primary seed script is `prisma/seed.ts`. It is designed to be idempotent using manual existence checks.
 - For quick data verification, `check_data.ts` can be used via `npx tsx check_data.ts`.
+ - Seeded users are created with a hashed password from `SEED_DEFAULT_PASSWORD` (default: `ChangeMe123!`).
 
 ---
 
