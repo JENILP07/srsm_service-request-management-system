@@ -7,15 +7,20 @@ export default function PageTransition({ children }: { children: React.ReactNode
   const pathname = usePathname();
 
   return (
-    <motion.div
-      key={pathname}
-      initial={{ opacity: 0, y: 15 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -15 }}
-      transition={{ duration: 0.3, ease: "easeOut" }}
-      className="w-full"
-    >
-      {children}
-    </motion.div>
+    <div style={{ perspective: "1000px" }}> {/* Add perspective container */}
+      <motion.div
+        key={pathname}
+        initial={{ opacity: 0, rotateY: -5, y: 15 }} // Start slightly rotated and down
+        animate={{ opacity: 1, rotateY: 0, y: 0 }} // Animate to flat and centered
+        exit={{ opacity: 0, rotateY: 5, y: -15 }} // Exit slightly rotated the other way
+        transition={{ 
+            duration: 0.5, 
+            ease: [0.22, 1, 0.36, 1] // Custom cubic-bezier for smooth motion
+        }}
+        className="w-full transform-style-3d" // Ensure 3D transforms are preserved
+      >
+        {children}
+      </motion.div>
+    </div>
   );
 }

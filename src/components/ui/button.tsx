@@ -11,10 +11,10 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        default: "bg-primary text-primary-foreground hover:bg-primary-hover",
-        destructive: "bg-destructive text-destructive-foreground hover:bg-destructive/90",
-        outline: "border border-input bg-background hover:bg-secondary/10 hover:text-foreground",
-        secondary: "bg-secondary text-secondary-foreground hover:bg-secondary/80",
+        default: "bg-primary text-primary-foreground hover:bg-primary-hover shadow-md hover:shadow-lg",
+        destructive: "bg-destructive text-destructive-foreground hover:bg-destructive/90 shadow-sm hover:shadow-md",
+        outline: "border border-input bg-background hover:bg-secondary/10 hover:text-foreground hover:border-primary/50",
+        secondary: "bg-secondary text-secondary-foreground hover:bg-secondary/80 shadow-sm",
         ghost: "hover:bg-secondary/10 hover:text-foreground",
         link: "link-primary",
       },
@@ -50,6 +50,9 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps & { isLoading?: b
         className={cn(buttonVariants({ variant, size, className }))}
         ref={ref}
         disabled={isLoading || isSuccess || props.disabled}
+        whileHover={{ scale: 1.02, y: -2 }}
+        whileTap={{ scale: 0.98, y: 0 }}
+        transition={{ type: "spring", stiffness: 400, damping: 17 }}
         {...props as any}
       >
         <AnimatePresence mode="wait" initial={false}>

@@ -6,6 +6,8 @@ import { cn } from "@/lib/utils";
 const Card = React.forwardRef<HTMLDivElement, HTMLMotionProps<"div">>(({ className, ...props }, ref) => (
   <motion.div
     ref={ref}
+    whileHover={{ y: -4, boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)" }}
+    transition={{ type: "spring", stiffness: 300, damping: 20 }}
     className={cn("rounded-lg border bg-card text-card-foreground shadow-sm", className)}
     {...props}
   />
