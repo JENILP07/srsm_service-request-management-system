@@ -6,8 +6,9 @@ import { PageHeader } from '@/components/ui/page-header';
 // ... rest of imports
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
+// import { FloatingLabelInput } from '@/components/ui/floating-label-input';
 import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import {
   Select,
@@ -149,7 +150,7 @@ export default function NewRequest() {
   };
 
   return (
-    <motion.div 
+    <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
@@ -166,7 +167,7 @@ export default function NewRequest() {
       </div>
 
       <form onSubmit={handleSubmit}>
-        <Card className="border-l-4 border-l-primary/50 shadow-md">
+        <Card>
           <CardHeader>
             <CardTitle>Request Details</CardTitle>
             <CardDescription>
@@ -174,7 +175,7 @@ export default function NewRequest() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
-            <motion.div 
+            <motion.div
               initial="hidden"
               animate="visible"
               transition={{ staggerChildren: 0.1 }}
@@ -220,7 +221,7 @@ export default function NewRequest() {
                   </SelectContent>
                 </Select>
                 {selectedRequestTypeDetails && (
-                  <motion.p 
+                  <motion.p
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     className="text-sm text-muted-foreground"
@@ -265,12 +266,12 @@ export default function NewRequest() {
                 <Label htmlFor="title">Request Title *</Label>
                 <Input
                   id="title"
-                  placeholder="Brief summary of your request"
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                   required
                   maxLength={250}
                   className="h-11"
+                  placeholder="Briefly summarize your request"
                 />
                 <p className="text-xs text-muted-foreground text-right">{title.length}/250</p>
               </motion.div>
@@ -298,7 +299,7 @@ export default function NewRequest() {
         </Card>
 
         {/* Submit */}
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.5 }}
@@ -309,7 +310,7 @@ export default function NewRequest() {
           </Button>
           <Button
             type="submit"
-            className="gap-2 gradient-primary shadow-lg transition-transform hover:scale-105 active:scale-95"
+            className="gap-2"
             disabled={!selectedRequestType || !title || !description || isSubmitting}
           >
             {isSubmitting ? (

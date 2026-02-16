@@ -65,8 +65,9 @@ export async function signIn(email: string, password: string) {
     ;(await cookies()).set(SESSION_COOKIE_NAME, session, getSessionCookieOptions(expires))
 
     return { error: null }
-  } catch (error) {
-    return { error: 'Invalid credentials' }
+  } catch (error: any) {
+    console.error('Sign in error:', error)
+    return { error: error.message || 'Invalid credentials' }
   }
 }
 
@@ -104,8 +105,9 @@ export async function signUp(email: string, password: string, name: string) {
         ;(await cookies()).set(SESSION_COOKIE_NAME, session, getSessionCookieOptions(expires))
 
         return { error: null }
-    } catch (error) {
-        return { error: 'Sign up failed' }
+    } catch (error: any) {
+        console.error('Sign up error:', error)
+        return { error: error.message || 'Sign up failed' }
     }
 }
 

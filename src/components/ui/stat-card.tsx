@@ -37,15 +37,14 @@ function AnimatedCounter({ value }: { value: number }) {
 
 export function StatCard({ title, value, icon: Icon, trend, className, iconClassName, index = 0 }: StatCardProps) {
   const isNumber = typeof value === 'number';
-  
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.1, duration: 0.4 }}
-      whileHover={{ y: -5, boxShadow: "0 10px 30px -10px rgba(0,0,0,0.1)" }}
       className={cn(
-        'relative overflow-hidden rounded-xl border bg-card p-6 shadow-card transition-colors',
+        'relative overflow-hidden rounded-xl border bg-card p-6 shadow-sm transition-colors',
         className
       )}
     >
@@ -53,17 +52,17 @@ export function StatCard({ title, value, icon: Icon, trend, className, iconClass
         <div className="space-y-2">
           <p className="text-sm font-medium text-muted-foreground">{title}</p>
           <p className="text-3xl font-bold font-display tracking-tight">
-             {isNumber ? <AnimatedCounter value={value as number} /> : value}
+            {isNumber ? <AnimatedCounter value={value as number} /> : value}
           </p>
           {trend && (
-            <motion.p 
+            <motion.p
               initial={{ opacity: 0, x: -10 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.2 + (index * 0.1) }}
               className={cn(
-              'text-xs font-medium flex items-center gap-1',
-              trend.isPositive ? 'text-status-completed' : 'text-destructive'
-            )}>
+                'text-xs font-medium flex items-center gap-1',
+                trend.isPositive ? 'text-status-completed' : 'text-destructive'
+              )}>
               <span>{trend.isPositive ? '↑' : '↓'} {Math.abs(trend.value)}%</span>
               <span className="text-muted-foreground">vs last month</span>
             </motion.p>

@@ -131,7 +131,7 @@ export default function RequestsList() {
   });
 
   return (
-    <motion.div 
+    <motion.div
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4 }}
@@ -142,7 +142,7 @@ export default function RequestsList() {
         description="View and manage service requests"
       >
         {role === 'requestor' && (
-          <Button asChild className="gap-2 gradient-primary shadow-glow hover:scale-105 transition-transform">
+          <Button asChild className="gap-2 shadow-sm transition-transform hover:scale-105">
             <Link href="/requests/new">
               <Plus className="h-4 w-4" />
               New Request
@@ -233,8 +233,8 @@ export default function RequestsList() {
                   {sortedRequests.map((request, index) => (
                     <motion.tr
                       key={request.id}
-                      initial={{ opacity: 0, x: -10 }}
-                      animate={{ opacity: 1, x: 0 }}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: index * 0.05 }}
                       className="group border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted"
                     >
@@ -264,7 +264,7 @@ export default function RequestsList() {
                           variant="ghost"
                           size="icon"
                           asChild
-                          className="opacity-0 group-hover:opacity-100 transition-all hover:scale-110"
+                          className="opacity-0 group-hover:opacity-100 transition-opacity"
                         >
                           <Link href={`/requests/${request.id}`}>
                             <Eye className="h-4 w-4" />

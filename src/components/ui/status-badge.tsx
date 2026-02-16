@@ -1,4 +1,5 @@
 import { cn } from '@/lib/utils';
+import { motion } from 'framer-motion';
 
 type StatusType = 'pending' | 'progress' | 'completed' | 'closed' | 'cancelled';
 
@@ -16,31 +17,31 @@ const statusMap: Record<string, StatusType> = {
 };
 
 const statusStyles: Record<StatusType, string> = {
-  pending: 'bg-status-pending-bg text-status-pending border-status-pending/20',
-  progress: 'bg-status-progress-bg text-status-progress border-status-progress/20',
-  completed: 'bg-status-completed-bg text-status-completed border-status-completed/20',
-  closed: 'bg-status-closed-bg text-status-closed border-status-closed/20',
-  cancelled: 'bg-status-cancelled-bg text-status-cancelled border-status-cancelled/20',
+  pending: 'bg-warning/10 text-warning',
+  progress: 'bg-primary/10 text-primary',
+  completed: 'bg-success/10 text-success',
+  closed: 'bg-muted text-muted-foreground',
+  cancelled: 'bg-error/10 text-error',
 };
 
 export function StatusBadge({ status, className }: StatusBadgeProps) {
   const statusType = statusMap[status] || 'pending';
-  
+
   return (
     <span
       className={cn(
-        'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border',
+        'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium',
         statusStyles[statusType],
         className
       )}
     >
       <span className={cn(
         'w-1.5 h-1.5 rounded-full mr-1.5',
-        statusType === 'pending' && 'bg-status-pending',
-        statusType === 'progress' && 'bg-status-progress animate-pulse-subtle',
-        statusType === 'completed' && 'bg-status-completed',
-        statusType === 'closed' && 'bg-status-closed',
-        statusType === 'cancelled' && 'bg-status-cancelled',
+        statusType === 'pending' && 'bg-warning',
+        statusType === 'progress' && 'bg-primary',
+        statusType === 'completed' && 'bg-success',
+        statusType === 'closed' && 'bg-muted-foreground',
+        statusType === 'cancelled' && 'bg-error',
       )} />
       {status}
     </span>
