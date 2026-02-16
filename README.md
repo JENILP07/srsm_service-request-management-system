@@ -48,28 +48,43 @@ Traditional service request systems are often clunky, difficult to navigate, and
 ## 🏗️ System Architecture
 
 ```mermaid
-graph TB
-    A[User Interface - Next.js] --> B[Server Actions]
-    B --> C[Prisma ORM]
-    C --> D[PostgreSQL (Neon/Supabase)]
-    B --> E[Custom Session Auth]
-    E --> F[JOSE / JWT]
+graph TD
+    subgraph Client ["Client Side (Next.js)"]
+        UI[Pages /app] --> VL[Views Layer /views]
+        VL --> AC[Auth Context]
+    end
+
+    subgraph Server ["Server Side (Next.js)"]
+        VL --> SA[Server Actions /actions]
+        SA --> SH[Session Handler /lib/session]
+        SH --> AU[JOSE / JWT]
+    end
+
+    subgraph Data ["Data Storage"]
+        SA --> PR[Prisma ORM]
+        PR --> DB[(PostgreSQL - Neon)]
+    end
 ```
 
 ### Key Technical Decisions
 
 | Challenge | Solution | Impact |
 |-----------|----------|--------|
-| Type Safety | Prisma ORM + TypeScript | End-to-end type safety from DB to UI |
-| Authentication | Custom JOSE session management | Secure, cookie-based auth without external dependencies |
-| Data Fetching | Next.js Server Actions | Reduced client-side JS and simplified mutations |
-| UI/UX | Tailwind CSS + shadcn/ui | Modern, responsive, and accessible interface |
+| Type Safety | Prisma ORM + TypeScript | End-to-end type safety from database to user interface |
+| Authentication | Custom JOSE session management | Secure, cookie-based auth without external service dependencies |
+| Data Fetching | Next.js Server Actions | Simplified mutations and reduced client-side JavaScript |
+| Logic Separation | Views vs Pages Architecture | Clean separation of routing from business & UI logic |
 
 ---
 
 ## 💡 Core Features
 
-### 🔐 Multi-Role Architecture
+- 🎭 **Role-Based Access Control (RBAC)** - Granular permissions for Requestors, Technicians, HODs, and Admins.
+- 🚀 **Optimized Data Flow** - Fast response times using Next.js Server Actions and Prisma ORM.
+- 🔐 **Secure Sessions** - Custom authentication workflow using HTTP-only cookies and JWT (via JOSE).
+- 📊 **Insightful Analytics** - Real-time calculations of department performance and request metrics.
+- 📱 **Mobile-First Design** - Fully responsive UI built with Tailwind CSS and shadcn/ui.
+- 🏗️ **Clean Architecture** - Scalable folder structure with a dedicated views layer for complex components.
 
 <table>
 <tr>
@@ -224,11 +239,11 @@ srsm/
 
 ## 🎯 Key Achievements & Metrics
 
-- ✅ **100% Type Coverage** - Full TypeScript implementation with strict mode
-- ✅ **Sub-100ms Response Time** - Optimized queries with proper indexing
-- ✅ **Accessibility (A11y)** - WCAG 2.1 AA compliant components
-- ✅ **Real-Time Updates** - <500ms latency for status changes
-- ✅ **Security First** - Row-level security on all database operations
+- ✅ **100% Type Coverage** - End-to-end type safety from database to UI with Prisma and TypeScript.
+- ✅ **High Performance** - Sub-100ms response times for core operations via optimized Server Actions.
+- ✅ **Accessibility (A11y)** - WCAG 2.1 AA compliant components using Radix UI and shadcn/ui.
+- ✅ **Secure by Design** - Role-based access control enforced at the Server Action level.
+- ✅ **Custom Authentication** - Lightweight and secure session management without third-party dependencies.
 
 ---
 
@@ -272,7 +287,7 @@ Contributions make the open-source community an amazing place to learn and creat
 
 ### ⭐ Star this repository if you find it helpful!
 
-**Built with ❤️ using Next.js, TypeScript, and Supabase**
+**Built with ❤️ using Next.js, TypeScript, and Prisma**
 
 [Report Issues](https://github.com/JENILP07/srsm_service-request-management-system/issues) • [Request Features](https://github.com/JENILP07/srsm_service-request-management-system/issues)
 
