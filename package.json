@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "postinstall": "prisma generate",
     "build:dev": "vite build --mode development",
     "lint": "eslint .",
     "start": "next start",
@@ -84,6 +85,7 @@
     "@types/node": "^22.16.5",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
+    "@types/three": "^0.183.1",
     "autoprefixer": "^10.4.21",
     "dotenv": "^17.2.4",
     "eslint": "^9.32.0",
