@@ -3,10 +3,8 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { PageHeader } from '@/components/ui/page-header';
-// ... rest of imports
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-// import { FloatingLabelInput } from '@/components/ui/floating-label-input';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -51,7 +49,7 @@ interface ServiceRequestType {
 }
 
 export default function NewRequest() {
-  const router = useRouter(); // Changed from useNavigate
+  const router = useRouter();
   const { user } = useAuth();
   const [serviceTypes, setServiceTypes] = useState<ServiceType[]>([]);
   const [requestTypes, setRequestTypes] = useState<ServiceRequestType[]>([]);
@@ -70,16 +68,11 @@ export default function NewRequest() {
 
   const fetchData = async () => {
     setIsLoading(true);
-
-    // Fetch service types
     const { data: stData } = await getServiceTypes();
     if (stData) setServiceTypes(stData as ServiceType[]);
-
-    // Fetch request types
     const { data: rtData } = await getServiceRequestTypes();
     // @ts-ignore
     if (rtData) setRequestTypes(rtData as ServiceRequestType[]);
-
     setIsLoading(false);
   };
 
@@ -99,8 +92,6 @@ export default function NewRequest() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    // Validate with Zod before submitting
     const validationResult = serviceRequestSchema.safeParse({
       title: title.trim(),
       description: description.trim(),
@@ -115,7 +106,6 @@ export default function NewRequest() {
     }
 
     setIsSubmitting(true);
-
     const { data: insertedRequest, error } = await createRequest({
       title: validationResult.data.title,
       description: validationResult.data.description,
@@ -124,15 +114,13 @@ export default function NewRequest() {
     });
 
     if (error) {
-      toast.error('Failed to submit request');
-      console.error(error);
+      toast.error(error);
     } else {
       toast.success('Service request submitted successfully!', {
         description: `Request No: ${insertedRequest?.request_no}`,
       });
       router.push('/requests');
     }
-
     setIsSubmitting(false);
   };
 
@@ -181,7 +169,6 @@ export default function NewRequest() {
               transition={{ staggerChildren: 0.1 }}
               className="space-y-6"
             >
-              {/* Service Type */}
               <motion.div variants={formItemVariants} className="grid gap-2">
                 <Label htmlFor="serviceType">Service Category *</Label>
                 <Select value={selectedServiceType} onValueChange={setSelectedServiceType}>
@@ -198,7 +185,6 @@ export default function NewRequest() {
                 </Select>
               </motion.div>
 
-              {/* Request Type */}
               <motion.div variants={formItemVariants} className="grid gap-2">
                 <Label htmlFor="requestType">Request Type *</Label>
                 <Select
@@ -231,7 +217,6 @@ export default function NewRequest() {
                 )}
               </motion.div>
 
-              {/* Priority */}
               <motion.div variants={formItemVariants} className="grid gap-2">
                 <Label htmlFor="priority">Priority Level *</Label>
                 <Select value={selectedPriority} onValueChange={(v) => setSelectedPriority(v as PriorityLevel)}>
@@ -239,29 +224,13 @@ export default function NewRequest() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="Low">
-                      <div className="flex items-center gap-2">
-                        <span className="w-2 h-2 rounded-full bg-priority-low" />
-                        Low - Can wait a few days
-                      </div>
-                    </SelectItem>
-                    <SelectItem value="Medium">
-                      <div className="flex items-center gap-2">
-                        <span className="w-2 h-2 rounded-full bg-priority-medium" />
-                        Medium - Needs attention soon
-                      </div>
-                    </SelectItem>
-                    <SelectItem value="High">
-                      <div className="flex items-center gap-2">
-                        <span className="w-2 h-2 rounded-full bg-priority-high" />
-                        High - Urgent, impacts work
-                      </div>
-                    </SelectItem>
+                    <SelectItem value="Low">Low</SelectItem>
+                    <SelectItem value="Medium">Medium</SelectItem>
+                    <SelectItem value="High">High</SelectItem>
                   </SelectContent>
                 </Select>
               </motion.div>
 
-              {/* Title */}
               <motion.div variants={formItemVariants} className="grid gap-2">
                 <Label htmlFor="title">Request Title *</Label>
                 <Input
@@ -273,10 +242,8 @@ export default function NewRequest() {
                   className="h-11"
                   placeholder="Briefly summarize your request"
                 />
-                <p className="text-xs text-muted-foreground text-right">{title.length}/250</p>
               </motion.div>
 
-              {/* Description */}
               <motion.div variants={formItemVariants} className="grid gap-2">
                 <Label htmlFor="description">Description *</Label>
                 <Textarea
@@ -287,18 +254,12 @@ export default function NewRequest() {
                   required
                   rows={5}
                   maxLength={2000}
-                  className="resize-y"
                 />
-                <p className="text-xs text-muted-foreground text-right">{description.length}/2000</p>
               </motion.div>
             </motion.div>
-
-            {/* Attachments - Feature coming soon */}
-            {/* File upload functionality will be implemented with proper security controls */}
           </CardContent>
         </Card>
 
-        {/* Submit */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -313,17 +274,8 @@ export default function NewRequest() {
             className="gap-2"
             disabled={!selectedRequestType || !title || !description || isSubmitting}
           >
-            {isSubmitting ? (
-              <>
-                <Loader2 className="h-4 w-4 animate-spin" />
-                Submitting...
-              </>
-            ) : (
-              <>
-                <Send className="h-4 w-4" />
-                Submit Request
-              </>
-            )}
+            {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+            {isSubmitting ? 'Submitting...' : 'Submit Request'}
           </Button>
         </motion.div>
       </form>

@@ -389,10 +389,10 @@ export default function AnalyticsDashboard() {
           className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12"
         >
             {[
-                { title: "Total Requests", value: stats.totalRequests, icon: BarChart3, color: "text-blue-500", trend: "+12%" },
-                { title: "Pending", value: stats.pendingCount, icon: Clock, color: "text-orange-500", trend: "-5%" },
-                { title: "Resolved", value: stats.resolvedCount, icon: CheckCircle2, color: "text-green-500", trend: "+8%" },
-                { title: "Avg Time (hrs)", value: stats.avgHours, icon: TrendingUp, color: "text-purple-500", trend: "-2.1%" },
+                { title: "Total Requests", value: stats.totalRequests, icon: BarChart3, color: "text-blue-500" },
+                { title: "Pending", value: stats.pendingCount, icon: Clock, color: "text-orange-500" },
+                { title: "Resolved", value: stats.resolvedCount, icon: CheckCircle2, color: "text-green-500" },
+                { title: "Avg Time (hrs)", value: stats.avgHours, icon: TrendingUp, color: "text-purple-500" },
             ].map((stat, index) => (
                 <motion.div key={index} variants={itemVariants} whileHover={{ y: -5 }} className="h-full">
                     <Card className="h-full overflow-hidden border-border/50 shadow-sm hover:shadow-lg transition-all duration-300">
@@ -407,10 +407,7 @@ export default function AnalyticsDashboard() {
                                 <AnimatedCounter value={stat.value} />
                             </div>
                             <p className="text-xs text-muted-foreground flex items-center mt-1">
-                                <span className={cn("font-medium", stat.trend.startsWith('+') ? "text-green-500" : "text-red-500")}>
-                                    {stat.trend}
-                                </span>
-                                <span className="ml-1">from last month</span>
+                                System wide data
                             </p>
                             <div className="h-1 w-full bg-secondary mt-3 rounded-full overflow-hidden">
                                 <motion.div 

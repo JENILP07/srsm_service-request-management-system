@@ -11,7 +11,7 @@ import { PriorityBadge } from '@/components/ui/priority-badge';
 import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { getRequestDetail, addReply, getDepartmentTechnicians, assignTechnician } from '@/app/actions/requests';
+import { getRequestDetail, addReply, getDepartmentTechnicians, assignTechnician, updateRequestStatus } from '@/app/actions/requests';
 import { useAuth } from '@/contexts/AuthContext';
 import { PriorityLevel } from '@/types/service-request';
 import {
@@ -140,6 +140,21 @@ export default function RequestDetail() {
     setIsSubmitting(false);
   };
 
+  const handleStatusUpdate = async (statusName: string) => {
+    if (!request) return;
+    setIsSubmitting(true);
+
+    const { error } = await updateRequestStatus(request.id, statusName);
+
+    if (error) {
+      toast.error(`Failed to update status to ${statusName}`);
+    } else {
+      toast.success(`Request marked as ${statusName}`);
+      loadRequestData(); // Refresh data
+    }
+    setIsSubmitting(false);
+  };
+
   const handleReply = async () => {
     const validationResult = replySchema.safeParse({
       reply_description: replyText.trim(),
@@ -182,7 +197,7 @@ export default function RequestDetail() {
     );
   }
 
-  const canReply = role === 'technician' || role === 'requestor' || role === 'admin';
+  const canReply = role === 'technician' || role === 'requestor' || role === 'admin' || role === 'hod';
   const canUpdateStatus = role === 'technician' || role === 'hod' || role === 'admin';
 
   return (
@@ -414,14 +429,23 @@ export default function RequestDetail() {
                   </div>
                 )}
 
-                {request.status?.name === 'Pending' && (
-                  <Button className="w-full transition-transform active:scale-95" variant="outline">
+                {(request.status?.name === 'Open' || request.status?.name === 'Pending Approval') && (
+                  <Button 
+                    className="w-full transition-transform active:scale-95" 
+                    variant="outline"
+                    onClick={() => handleStatusUpdate('In Progress')}
+                    disabled={isSubmitting}
+                  >
                     Mark In Progress
                   </Button>
                 )}
-                {request.status?.name === 'In Progress' && (
-                  <Button className="w-full gradient-primary shadow-lg transition-transform hover:scale-105 active:scale-95">
-                    Mark Completed
+                {(request.status?.name === 'In Progress' || (role === 'admin' && request.status?.name !== 'Resolved' && request.status?.name !== 'Closed')) && (
+                  <Button 
+                    className="w-full gradient-primary shadow-lg transition-transform hover:scale-105 active:scale-95"
+                    onClick={() => handleStatusUpdate('Resolved')}
+                    disabled={isSubmitting}
+                  >
+                    Mark Resolved
                   </Button>
                 )}
               </CardContent>

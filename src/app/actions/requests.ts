@@ -98,7 +98,7 @@ export async function createRequest(data: {
         if (!user) return { error: 'Unauthorized' }
 
         const defaultStatus = await prisma.serviceRequestStatus.findFirst({
-            where: { sequence: 0 } // or system_name: 'new'
+            where: { system_name: 'OPEN' }
         })
 
         if (!defaultStatus) return { error: 'Default status not found' }
@@ -112,7 +112,7 @@ export async function createRequest(data: {
                 service_request_type_id: data.service_request_type_id,
                 requester_id: user.id,
                 status_id: defaultStatus.id,
-                request_no: '', // Trigger should handle this
+                request_no: `REQ-${Date.now().toString().slice(-6)}`, 
             }
         })
         
@@ -268,5 +268,247 @@ export async function assignTechnician(requestId: string, technicianId: string) 
     } catch (error) {
         console.error('Assign technician error', error)
         return { error: 'Failed to assign technician' }
+    }
+}
+
+export async function updateRequestStatus(requestId: string, statusName: string) {
+    try {
+        const user = await getCurrentUser()
+        if (!user) return { error: 'Unauthorized' }
+
+        // Find status by name (e.g. 'In Progress') or system_name (e.g. 'IN_PROGRESS')
+        const status = await prisma.serviceRequestStatus.findFirst({
+            where: {
+                OR: [
+                    { name: statusName },
+                    { system_name: statusName },
+                    { system_name: statusName.toUpperCase().replace(/\s+/g, '_') }
+                ]
+            }
+        })
+
+        if (!status) return { error: `Status '${statusName}' not found` }
+
+        const request = await prisma.serviceRequest.update({
+            where: { id: requestId },
+            data: {
+                status_id: status.id,
+                status_datetime: new Date(),
+                status_by_user_id: user.id
+            }
+        })
+
+        // Add system reply
+        await prisma.serviceRequestReply.create({
+            data: {
+                id: uuidv4(),
+                service_request_id: requestId,
+                user_id: user.id,
+                reply_description: `Status changed to ${statusName}`,
+                status_id: status.id,
+                status_by_user_id: user.id
+            }
+        })
+
+        return { data: request, error: null }
+    } catch (error) {
+        console.error('Update status error', error)
+        return { error: 'Failed to update status' }
+    }
+}
+
+export async function getDashboardStats() {
+    try {
+        const user = await getCurrentUser()
+        if (!user) return { error: 'Unauthorized' }
+
+        const now = new Date()
+        const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+
+        const resolvedStatuses = await prisma.serviceRequestStatus.findMany({
+            where: { is_no_further_action_required: true }
+        })
+        const resolvedIds = resolvedStatuses.map(s => s.id)
+
+        const inProgressStatus = await prisma.serviceRequestStatus.findFirst({
+            where: { system_name: 'IN_PROGRESS' }
+        })
+
+        const pendingApprovalStatus = await prisma.serviceRequestStatus.findFirst({
+            where: { system_name: 'PENDING_APPROVAL' }
+        })
+
+        if (user.role === 'admin') {
+            const totalRequests = await prisma.serviceRequest.count()
+            const departmentsCount = await prisma.serviceDepartment.count()
+            const requestTypesCount = await prisma.serviceRequestType.count()
+            const resolvedCount = await prisma.serviceRequest.count({
+                where: { status_id: { in: resolvedIds } }
+            })
+            
+            const resolutionRate = totalRequests > 0 
+                ? Math.round((resolvedCount / totalRequests) * 100) 
+                : 0
+
+            return {
+                data: {
+                    totalRequests,
+                    departmentsCount,
+                    requestTypesCount,
+                    resolutionRate: `${resolutionRate}%`
+                },
+                error: null
+            }
+        }
+
+        if (user.role === 'hod') {
+            // Find department for HOD
+            const deptPerson = await prisma.serviceDeptPerson.findFirst({
+                where: { user_id: user.id, is_hod: true }
+            })
+
+            if (!deptPerson) return { error: 'HOD Department not found' }
+
+            const deptWhere = {
+                service_request_type: {
+                    department_id: deptPerson.department_id
+                }
+            }
+
+            const pendingApproval = await prisma.serviceRequest.count({
+                where: { 
+                    ...deptWhere,
+                    status_id: pendingApprovalStatus?.id
+                }
+            })
+
+            const inProgress = await prisma.serviceRequest.count({
+                where: {
+                    ...deptWhere,
+                    status_id: inProgressStatus?.id
+                }
+            })
+
+            const completedToday = await prisma.serviceRequest.count({
+                where: {
+                    ...deptWhere,
+                    status_id: { in: resolvedIds },
+                    status_datetime: { gte: startOfToday }
+                }
+            })
+
+            const teamMembers = await prisma.serviceDeptPerson.count({
+                where: { department_id: deptPerson.department_id }
+            })
+
+            return {
+                data: {
+                    pendingApproval,
+                    inProgress,
+                    completedToday,
+                    teamMembers
+                },
+                error: null
+            }
+        }
+
+        if (user.role === 'technician') {
+            const techWhere = { assigned_to_user_id: user.id }
+
+            const assignedToMe = await prisma.serviceRequest.count({
+                where: {
+                    ...techWhere,
+                    status: { is_no_further_action_required: false }
+                }
+            })
+
+            const inProgress = await prisma.serviceRequest.count({
+                where: {
+                    ...techWhere,
+                    status_id: inProgressStatus?.id
+                }
+            })
+
+            const completedToday = await prisma.serviceRequest.count({
+                where: {
+                    ...techWhere,
+                    status_id: { in: resolvedIds },
+                    status_datetime: { gte: startOfToday }
+                }
+            })
+
+            // Avg resolution time for technician
+            const resolvedRequests = await prisma.serviceRequest.findMany({
+                where: {
+                    ...techWhere,
+                    status_id: { in: resolvedIds },
+                    status_datetime: { not: null }
+                },
+                select: {
+                    request_datetime: true,
+                    status_datetime: true
+                }
+            })
+
+            let avgResolution = 'N/A'
+            if (resolvedRequests.length > 0) {
+                const totalDiff = resolvedRequests.reduce((acc, req) => {
+                    return acc + (req.status_datetime!.getTime() - req.request_datetime.getTime())
+                }, 0)
+                const avgMs = totalDiff / resolvedRequests.length
+                const avgDays = (avgMs / (1000 * 60 * 60 * 24)).toFixed(1)
+                avgResolution = `${avgDays} days`
+            }
+
+            return {
+                data: {
+                    assignedToMe,
+                    inProgress,
+                    completedToday,
+                    avgResolution
+                },
+                error: null
+            }
+        }
+
+        // Default: Requestor
+        const requesterWhere = { requester_id: user.id }
+
+        const totalRequests = await prisma.serviceRequest.count({ where: requesterWhere })
+        
+        const pending = await prisma.serviceRequest.count({
+            where: {
+                ...requesterWhere,
+                status: { system_name: 'OPEN' }
+            }
+        })
+
+        const inProgress = await prisma.serviceRequest.count({
+            where: {
+                ...requesterWhere,
+                status_id: inProgressStatus?.id
+            }
+        })
+
+        const resolved = await prisma.serviceRequest.count({
+            where: {
+                ...requesterWhere,
+                status_id: { in: resolvedIds }
+            }
+        })
+
+        return {
+            data: {
+                totalRequests,
+                pending,
+                inProgress,
+                resolved
+            },
+            error: null
+        }
+
+    } catch (error) {
+        console.error('Dashboard stats error:', error)
+        return { error: 'Failed to fetch dashboard stats' }
     }
 }

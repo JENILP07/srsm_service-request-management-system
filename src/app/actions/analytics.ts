@@ -113,7 +113,7 @@ export async function getMonthlyTrends(dateRange?: { from?: string, to?: string 
         if (diffDays <= 31) {
             // Daily trends
             const days = []
-            let curr = new Date(startDate)
+            const curr = new Date(startDate)
             while (curr <= endDate) {
                 const dateStr = format(curr, 'MMM d')
                 const dayRequests = requests.filter(r => format(r.request_datetime, 'MMM d') === dateStr)
