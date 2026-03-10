@@ -1,8 +1,14 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
     reactStrictMode: true,
+    transpilePackages: ["three", "@react-three/fiber", "@react-three/drei"],
     images: {
-        domains: ['lovable.dev'], // Keeping this just in case, though likely unused now
+        remotePatterns: [
+            {
+                protocol: 'https',
+                hostname: 'lovable.dev',
+            }
+        ],
     },
     // We use the app directory
     experimental: {
